@@ -1,0 +1,41 @@
+{
+  "name": "tts-twitter-agent",
+  "version": "1.0.0",
+  "description": "Twitter agent that uses TTS to tweet",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "compile": "tsc",
+    "dev": "npm run compile && node ./dist/index.js"
+  },
+  "author": {
+    "email": "logesh.r24@gmail.com",
+    "name": "Logesh"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@gradio/client": "^1.10.0",
+    "agent-twitter-client": "^0.0.18",
+    "axios": "^1.4.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "multer": "^1.4.5-lts.1",
+    "music-metadata": "^7.14.0",
+    "nodemon": "^2.0.22",
+    "svelte": "^5.19.3",
+    "twit": "^2.2.11",
+    "twitter-api-v2": "^1.19.0",
+    "ytdl-core": "^4.11.5"
+  },
+  "devDependencies": {
+    "@tsconfig/svelte": "^5.0.4",
+    "@types/cors": "^2.8.17",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.5.4",
+    "typescript": "^5.0.2"
+  }
+}

@@ -206,7 +206,10 @@ const getVoiceNameFromText = async (prompt: string) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "llama3.2",
-      prompt,
+      prompt: `
+      Extract the name of the person or character from this request: "${prompt}"
+      Only return the name. Do not include any extra text. If you cannot find the name, return "None".
+      `,
       stream: false,
       options: {
         temperature: 0.7,
@@ -217,8 +220,17 @@ const getVoiceNameFromText = async (prompt: string) => {
       },
     }),
   });
-  return "trump";
+  const data = await response.json();
+  console.log({ data });
+  const voiceName = data.response;
+  return voiceName;
 };
+
+app.get("/voice-name/:text", async (req, res) => {
+  const text = req.params.text;
+  const voiceName = await getVoiceNameFromText(text);
+  res.json({ voiceName });
+});
 
 app.post("/reply-to-mention", async (req, res) => {
   await login();
@@ -227,8 +239,15 @@ app.post("/reply-to-mention", async (req, res) => {
     console.log(tweet);
     const text = tweet.text;
     if (text) {
-      // get it using function calling LLM
-      const voice = "trump";
+      const voice = await getVoiceNameFromText(text);
+      if (voice === "None") {
+        return;
+      }
+      if (!voice_map[voice]) {
+        // TODO: add voice to voice_map
+        console.log("Voice not found: ", voice);
+        return;
+      }
       const resData = await synthesizeVoice(text, voice);
       if (resData?.url) {
         const localFilePath = `${tweet.id}.mp3`;

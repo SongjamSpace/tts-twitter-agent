@@ -14,6 +14,7 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.0",
     "@gradio/client": "^1.10.0",
     "agent-twitter-client": "^0.0.18",
     "axios": "^1.4.0",
@@ -26,10 +27,7 @@
     "multer": "^1.4.5-lts.1",
     "music-metadata": "^7.14.0",
     "nodemon": "^2.0.22",
-    "svelte": "^5.19.3",
-    "twit": "^2.2.11",
-    "twitter-api-v2": "^1.19.0",
-    "ytdl-core": "^4.11.5"
+    "svelte": "^5.19.3"
   },
   "devDependencies": {
     "@tsconfig/svelte": "^5.0.4",

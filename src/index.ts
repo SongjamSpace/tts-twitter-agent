@@ -5,7 +5,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import { Client, handle_file } from "@gradio/client";
 import axios from "axios";
-import { downloadAndConvertToMp3, urlToBlob } from "./helper.js";
+import { downloadUrl, downloadYtAndConvertToMp3, urlToBlob } from "./helper.js";
 import fs from "fs";
 import multer from "multer";
 import { Scraper, SearchMode } from "agent-twitter-client";
@@ -125,6 +125,16 @@ const covertVoice = async (speechMp3Url: string) => {
 //     duration,
 //   });
 // });
+
+const searchYoutubeVideos = async (voiceName: string) => {
+  // search for youtube videos with the voice name
+  const searchQuery = `${voiceName} voice compilation`;
+  const searchEndpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${process.env.YOUTUBE_API_KEY}`;
+  const searchResponse = await axios.get(searchEndpoint);
+  const data = searchResponse.data;
+  const items = data.items;
+  return items;
+};
 
 app.post("/create-rvc-note", async (req, res) => {
   const text = req.body.text;
@@ -246,12 +256,24 @@ app.post("/reply-to-mention", async (req, res) => {
       if (!voice_map[voice]) {
         // TODO: add voice to voice_map
         console.log("Voice not found: ", voice);
+        const videos = await searchYoutubeVideos(voice);
+        if (videos.length === 0) {
+          console.log("No videos found for voice: ", voice);
+          return;
+        }
+        const video = videos[0];
+        const videoId = video.id.videoId;
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        // TODO: Save it for reasoning
+        await downloadYtAndConvertToMp3(videoUrl, `${voice}-${videoId}.mp3`);
+        // TODO: Speaker Data
+        // TODO: Save the mapping
         return;
       }
       const resData = await synthesizeVoice(text, voice);
       if (resData?.url) {
         const localFilePath = `${tweet.id}.mp3`;
-        await downloadAndConvertToMp3(resData.url, localFilePath);
+        await downloadUrl(resData.url, localFilePath);
         // convert to mp4
         const mediaData = [
           {

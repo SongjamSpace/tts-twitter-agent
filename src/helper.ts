@@ -1,10 +1,10 @@
-import ytdl from "ytdl-core";
+import ytdl from "@distube/ytdl-core";
 import ffmpeg from "fluent-ffmpeg";
 import axios from "axios";
 import fs from "fs";
 import mm from "music-metadata";
 
-export const downloadAndConvertToMp3 = async (
+export const downloadYtAndConvertToMp3 = async (
   url: string,
   tmpOutputPath: string
 ) => {
@@ -71,7 +71,7 @@ export const mp3ToBase64 = async (mp3Url: string) => {
     return null;
   }
 };
-const downloadUrl = async (url: string, outputPath: string) => {
+export const downloadUrl = async (url: string, outputPath: string) => {
   const response = await axios.get(url, { responseType: "arraybuffer" });
   fs.writeFileSync(outputPath, Buffer.from(response.data));
   return outputPath;

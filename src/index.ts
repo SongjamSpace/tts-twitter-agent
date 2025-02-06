@@ -128,7 +128,10 @@ const covertVoice = async (speechMp3Url: string) => {
 
 const searchYoutubeVideos = async (voiceName: string) => {
   // search for youtube videos with the voice name
-  const searchQuery = `${voiceName} voice compilation`;
+  // what is the Best search for finding voice clips?
+  // voice name + "voice"
+  // Search Query #1:
+  const searchQuery = `${voiceName} voice`;
   const searchEndpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${process.env.YOUTUBE_API_KEY}`;
   const searchResponse = await axios.get(searchEndpoint);
   const data = searchResponse.data;
@@ -136,14 +139,6 @@ const searchYoutubeVideos = async (voiceName: string) => {
   return items;
 };
 
-app.post("/create-rvc-note", async (req, res) => {
-  const text = req.body.text;
-  // const speechUrl = await createVoiceNoteFromText(text);
-  const voiceUrl = await covertVoice(
-    "https://logeshnusic-edge-tts-text-to-speech.hf.space/gradio_api/file=/tmp/gradio/d7b7dcb2b3871c3bae3b641da1f2b8ab6606e4cde78652d92cfd2675aab142f6/tmpgki6xyc2.mp3"
-  );
-  res.json({ voiceUrl });
-});
 const voice_map = {
   trump:
     "https://firebasestorage.googleapis.com/v0/b/nusic-vox-player.appspot.com/o/trump-rally-15s.mp3?alt=media",
@@ -164,16 +159,6 @@ const synthesizeVoice = async (
   console.log(data);
   return data;
 };
-
-app.post("/llasa-voice-synthesizer", async (req, res) => {
-  const text = req.body.text;
-  if (!text) {
-    return res.status(400).json({ error: "Text is required" });
-  }
-  const voice = req.body.voice as keyof typeof voice_map;
-  const data = await synthesizeVoice(text, voice);
-  res.json({ data, url: (data as any).url });
-});
 
 const scraper = new Scraper();
 
@@ -208,17 +193,56 @@ const findMentions = async () => {
 };
 const ollamaUrl = "http://localhost:11434";
 
-// TODO:
-const getVoiceNameFromText = async (prompt: string) => {
-  // get it using function calling LLM
+const getVoiceNameFromText = async (
+  prompt: string
+): Promise<{
+  voice_name: string;
+  suggestions: string[];
+}> => {
   const response = await fetch(`${ollamaUrl}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "llama3.2",
       prompt: `
-      Extract the name of the person or character from this request: "${prompt}"
-      Only return the name. Do not include any extra text. If you cannot find the name, return "None".
+      Given this text: "${prompt}"
+      
+      Task: Find a name of a person or character mentioned in the text.
+      1. If a specific name is found, return: {"voice_name": "name"}
+      2. If no name is found, return: {"voice_name": "None", "suggestions": string[] (Choose 4 random well-known voices from different categories: actors, politicians, celebrities, narrators)}
+      Dont include anything other than the JSON response. Response MUST be in VALID JSON format.
+      `,
+      stream: false,
+      // options: {
+      //   temperature: 0.7,
+      //   stop: ["\n"],
+      //   frequency_penalty: 0.5,
+      //   presence_penalty: 0.5,
+      //   num_predict: 256,
+      // },
+    }),
+  });
+  const data = await response.json();
+  console.log({ res: data.response });
+  const voiceName = JSON.parse(data.response) as {
+    voice_name: string;
+    suggestions: string[];
+  };
+  return voiceName;
+};
+
+const analyzeVideoTitles = async (titles: string[]): Promise<string | null> => {
+  // TODO: Run the title through LLM to find a matching video from youtube
+  const response = await fetch(`${ollamaUrl}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "llama3.2",
+      prompt: `
+      Analyze the following youtube video titles and find a youtube video that I can use to retrieve the voice, interviews, speeches, talks, etc are useful: "${titles.join(
+        ", "
+      )}"
+      Only return one of the titles. Do not include any extra text. If you cannot find the name, return "None".
       `,
       stream: false,
       options: {
@@ -232,17 +256,95 @@ const getVoiceNameFromText = async (prompt: string) => {
   });
   const data = await response.json();
   console.log({ data });
-  const voiceName = data.response;
-  return voiceName;
+  const title = data.response;
+  if (title === "None") {
+    return null;
+  }
+  return title;
 };
 
-app.get("/voice-name/:text", async (req, res) => {
-  const text = req.params.text;
-  const voiceName = await getVoiceNameFromText(text);
-  res.json({ voiceName });
+const youtubeSearchResults = async (voiceName: string) => {
+  const videos = await searchYoutubeVideos(voiceName);
+  if (videos.length === 0) {
+    console.log("No videos found for voice: ", voiceName);
+    return null;
+  }
+  const results = [];
+  videos.map((video) => {
+    results.push({
+      title: video.snippet.title,
+      id: video.id.videoId,
+      url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+    });
+  });
+  return results;
+};
+
+const findYtVoiceClipFromVoiceName = async (
+  voiceName: string
+): Promise<{
+  videoTitle: string;
+  videoId: string;
+  videoUrl: string;
+} | null> => {
+  const videos = await searchYoutubeVideos(voiceName);
+  if (videos.length === 0) {
+    console.log("No videos found for voice: ", voiceName);
+    return null;
+  }
+  console.log("No of videos found for voice: ", videos.length);
+  const titleIdMap = {};
+  const titles = videos.map((video) => {
+    titleIdMap[video.snippet.title] = video.id.videoId;
+    return video.snippet.title;
+  });
+  // TODO: Run the titles through LLM to find a matching video for analysis
+  const videoTitle = await analyzeVideoTitles(titles);
+  if (!videoTitle) {
+    console.log("No matching video found for voice: ", voiceName);
+    return null;
+  }
+  const videoId = titleIdMap[videoTitle];
+  const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  console.log("Selected video: ", videoTitle, " - ", videoUrl);
+  return { videoTitle, videoId, videoUrl };
+};
+
+// TODO:
+const voiceNameToDataset = async (voiceName: string) => {
+  const videoInfo = await findYtVoiceClipFromVoiceName(voiceName);
+  if (!videoInfo) {
+    console.log("No video found for voice: ", voiceName);
+    return;
+  }
+  const { videoTitle, videoId, videoUrl } = videoInfo;
+  const audioFilePath = `${videoId}.mp3`;
+  // TODO: Save it for reasoning
+  await downloadYtAndConvertToMp3(videoUrl, audioFilePath);
+  // TODO: Speaker Data
+  // TODO: Save the mapping
+};
+
+app.post("/create-rvc-note", async (req, res) => {
+  const text = req.body.text;
+  // const speechUrl = await createVoiceNoteFromText(text);
+  const voiceUrl = await covertVoice(
+    "https://logeshnusic-edge-tts-text-to-speech.hf.space/gradio_api/file=/tmp/gradio/d7b7dcb2b3871c3bae3b641da1f2b8ab6606e4cde78652d92cfd2675aab142f6/tmpgki6xyc2.mp3"
+  );
+  res.json({ voiceUrl });
 });
 
-app.post("/reply-to-mention", async (req, res) => {
+app.post("/llasa-voice-synthesizer", async (req, res) => {
+  const text = req.body.text;
+  if (!text) {
+    return res.status(400).json({ error: "Text is required" });
+  }
+  const voice = req.body.voice as keyof typeof voice_map;
+  const data = await synthesizeVoice(text, voice);
+  res.json({ data, url: (data as any).url });
+});
+
+app.post("/reply-to-mentions", async (req, res) => {
   await login();
   const searchTweets = await findMentions();
   searchTweets.tweets.forEach(async (tweet) => {
@@ -250,27 +352,13 @@ app.post("/reply-to-mention", async (req, res) => {
     const text = tweet.text;
     if (text) {
       const voice = await getVoiceNameFromText(text);
-      if (voice === "None") {
+      if (voice.voice_name === "None") {
         return;
       }
-      if (!voice_map[voice]) {
-        // TODO: add voice to voice_map
-        console.log("Voice not found: ", voice);
-        const videos = await searchYoutubeVideos(voice);
-        if (videos.length === 0) {
-          console.log("No videos found for voice: ", voice);
-          return;
-        }
-        const video = videos[0];
-        const videoId = video.id.videoId;
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-        // TODO: Save it for reasoning
-        await downloadYtAndConvertToMp3(videoUrl, `${voice}-${videoId}.mp3`);
-        // TODO: Speaker Data
-        // TODO: Save the mapping
+      if (!voice_map[voice.voice_name]) {
         return;
       }
-      const resData = await synthesizeVoice(text, voice);
+      const resData = await synthesizeVoice(text, "trump"); // TODO: Change this to the voice name
       if (resData?.url) {
         const localFilePath = `${tweet.id}.mp3`;
         await downloadUrl(resData.url, localFilePath);
@@ -292,6 +380,26 @@ app.post("/reply-to-mention", async (req, res) => {
     }
   });
   res.send("Success");
+});
+
+app.post("/text-to-voicename", async (req, res) => {
+  const text = req.body.text;
+  const result = await getVoiceNameFromText(text);
+  return res.json(result);
+});
+
+app.post("/voice-youtube-results", async (req, res) => {
+  const voiceName = req.body.voice_name;
+  const videos = await youtubeSearchResults(voiceName);
+  res.json(videos);
+});
+
+app.post("/youtube-video-speakers-extraction", async (req, res) => {
+  const videoUrl = req.body.video_url;
+  await downloadYtAndConvertToMp3(videoUrl, "tmp.mp3");
+  console.log("Downloaded and converted to mp3");
+  // TODO: PYANNOTE SPEAKERS EXTRACTION
+  res.json({});
 });
 
 app.listen(port, async () => {

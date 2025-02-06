@@ -15,6 +15,7 @@ export const downloadYtAndConvertToMp3 = async (
   const ffmpegCommand = ffmpeg(videoReadableStream)
     .format("mp3")
     .audioBitrate(128) // You can set the desired bitrate
+    .setDuration(2 * 60) // Set duration to 120 seconds (2 minutes)
     .on("error", (err) => {
       console.error("Error during conversion:", err);
     });

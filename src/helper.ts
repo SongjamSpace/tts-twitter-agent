@@ -117,3 +117,90 @@ export const mergeAudioFilesUsingFfmpeg = async (
 
   return outputPath;
 };
+
+export const sliceAndCombineBySpeakers = async (
+  audioPath: string,
+  diarization: {
+    start: number;
+    end: number;
+    speaker: string;
+  }[]
+) => {
+  // Group segments by speaker
+  const speakerSegments: { [key: string]: { start: number; end: number }[] } =
+    {};
+
+  // Filter segments less than 1 second and group by speaker
+  diarization.forEach((segment) => {
+    const duration = segment.end - segment.start;
+    if (duration >= 1) {
+      if (!speakerSegments[segment.speaker]) {
+        speakerSegments[segment.speaker] = [];
+      }
+      speakerSegments[segment.speaker].push({
+        start: segment.start,
+        end: segment.end,
+      });
+    }
+  });
+
+  const outputFiles: { [key: string]: string } = {};
+  const tempDir = "temp_segments";
+
+  // Create temp directory if it doesn't exist
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir);
+  }
+
+  // Process each speaker's segments
+  for (const [speaker, segments] of Object.entries(speakerSegments)) {
+    const speakerSegmentFiles: string[] = [];
+
+    // Cut each segment into separate files
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const segmentPath = `${tempDir}/segment_${speaker}_${i}.mp3`;
+
+      // Use ffmpeg to cut the segment
+      await new Promise((resolve, reject) => {
+        ffmpeg(audioPath)
+          .setStartTime(segment.start)
+          .setDuration(segment.end - segment.start)
+          .output(segmentPath)
+          .on("end", resolve)
+          .on("error", reject)
+          .run();
+      });
+
+      speakerSegmentFiles.push(segmentPath);
+    }
+
+    // Combine all segments for this speaker
+    const outputPath = `${speaker}_combined.mp3`;
+    const ffmpegCommand = ffmpeg();
+
+    // Add all segment files as inputs
+    speakerSegmentFiles.forEach((file) => {
+      ffmpegCommand.input(file);
+    });
+
+    // Concatenate all segments
+    await new Promise((resolve, reject) => {
+      ffmpegCommand
+        .on("end", () => {
+          // Clean up temporary segment files
+          speakerSegmentFiles.forEach((file) => fs.unlinkSync(file));
+          resolve(null);
+        })
+        .on("error", reject)
+        .mergeToFile(outputPath, tempDir);
+    });
+
+    outputFiles[speaker] = outputPath;
+  }
+
+  // Clean up temp directory
+  fs.rmdirSync(tempDir);
+
+  return outputFiles;
+};

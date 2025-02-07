@@ -51,7 +51,7 @@ export const uploadToFirebaseStorage = async (
     },
   });
   console.log("File uploaded successfully.");
-  return `https://voxaudio.nusic.fm/tts-yt-audio%2F${toFilePath}?alt=media`;
+  return `${process.env.FIREBASE_STORAGE_URL}/${FOLDER_NAME}%2F${toFilePath}?alt=media`;
 };
 
 export { uploadHfUrlToFirebase };

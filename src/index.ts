@@ -5,11 +5,21 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import { Client, handle_file } from "@gradio/client";
 import axios from "axios";
-import { downloadUrl, downloadYtAndConvertToMp3, urlToBlob } from "./helper.js";
+import {
+  downloadUrl,
+  downloadYtAndConvertToMp3,
+  sliceAndCombineBySpeakers,
+  urlToBlob,
+} from "./helper.js";
 import fs from "fs";
 import multer from "multer";
 import { Scraper, SearchMode } from "agent-twitter-client";
 import { uploadToFirebaseStorage } from "./services/storage/ytAudio.storage.js";
+import {
+  createJobDoc,
+  getJobDoc,
+  updateOnPyannoteJob,
+} from "./services/db/pyannoteJobs.service.js";
 
 const app = express();
 app.use(cors());
@@ -394,6 +404,45 @@ app.post("/voice-youtube-results", async (req, res) => {
   res.json(videos);
 });
 
+app.post("/webhook/pyannote", async (req, res) => {
+  const { jobId, status, output } = req.body;
+  if (status === "succeeded") {
+    const jobDoc = await getJobDoc(jobId);
+    if (!jobDoc) {
+      return res.status(400).json({ error: "Job not found" });
+    }
+    const { audioUrl } = jobDoc;
+    // TODO: Save the diarization to the database
+    const diarization = output.diarization as {
+      start: number;
+      end: number;
+      speaker: string;
+    }[];
+    // Download from url
+    const tempAudioPath = `${jobId}.mp3`;
+    await downloadUrl(audioUrl, tempAudioPath);
+    const audioPathObj = await sliceAndCombineBySpeakers(
+      tempAudioPath,
+      diarization
+    );
+    const paths = Object.values(audioPathObj);
+    console.log(audioPathObj);
+    await updateOnPyannoteJob(jobId, {
+      diarization,
+      speakers: paths,
+    });
+    // TODO: upload speakers audio to firebase
+    for (const path of paths) {
+      const pathInStorage = await uploadToFirebaseStorage(
+        path,
+        `${jobId}/${path}`
+      );
+      console.log(pathInStorage);
+    }
+    res.json({ speakers: paths });
+  }
+});
+
 app.post("/youtube-video-speakers-extraction", async (req, res) => {
   const videoUrl = req.body.video_url;
   if (!videoUrl) {
@@ -413,21 +462,20 @@ app.post("/youtube-video-speakers-extraction", async (req, res) => {
     `${process.env.PYANNOTE_SERVER_URL}/diarize`,
     {
       url: audioPathInStorage,
-      //TODO: Add Webhook URL
+      webhook: `${process.env.OWN_SERVER_URL}/webhook/pyannote`,
     },
     {
       headers: {
         Authorization: `Bearer ${process.env.PYANNOTE_API_KEY}`,
+        "Content-Type": "application/json",
       },
     }
   );
   const jobId = pyannoteRes.data.jobId;
   const status = pyannoteRes.data.status;
   console.log({ jobId, status });
-
-  // TODO: Wait for the job to finish
-
-  res.json({ audioPathInStorage });
+  await createJobDoc(jobId, status, audioPath, audioPathInStorage);
+  res.json({ audioPathInStorage, jobId });
 });
 
 app.listen(port, async () => {

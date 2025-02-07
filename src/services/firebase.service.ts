@@ -4,13 +4,12 @@ import admin from "firebase-admin";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { getAuth } from "firebase-admin/auth";
 
 const app = initializeApp({
   credential: admin.credential.cert(
     JSON.parse(process.env.FIREBASE_SERVICE_KEY)
   ),
-  storageBucket: "nusic-vox-player.appspot.com",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 });
 
 const db = getFirestore(app);

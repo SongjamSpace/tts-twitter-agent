@@ -49,6 +49,11 @@ export const getMp3Duration = async (filePath: string) => {
   }
 };
 
+export const localAudioFileToBlob = (localPath: string) => {
+  const audioFile = fs.readFileSync(localPath);
+  return new Blob([audioFile]);
+};
+
 export const urlToBlob = async (url: string): Promise<Blob> => {
   // Download the song to local:
   const mp3Res = await axios.get(url, { responseType: "arraybuffer" });

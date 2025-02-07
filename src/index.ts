@@ -9,6 +9,7 @@ import { downloadUrl, downloadYtAndConvertToMp3, urlToBlob } from "./helper.js";
 import fs from "fs";
 import multer from "multer";
 import { Scraper, SearchMode } from "agent-twitter-client";
+import { uploadToFirebaseStorage } from "./services/storage/ytAudio.storage.js";
 
 const app = express();
 app.use(cors());
@@ -197,7 +198,6 @@ const getVoiceNameFromText = async (
   prompt: string
 ): Promise<{
   voice_name: string;
-  suggestions: string[];
 }> => {
   const response = await fetch(`${ollamaUrl}/api/generate`, {
     method: "POST",
@@ -209,17 +209,17 @@ const getVoiceNameFromText = async (
       
       Task: Find a name of a person or character mentioned in the text.
       1. If a specific name is found, return: {"voice_name": "name"}
-      2. If no name is found, return: {"voice_name": "None", "suggestions": string[] (Choose 4 random well-known voices from different categories: actors, politicians, celebrities, narrators)}
+      2. If no name is found, return: {"voice_name": "None"}
       Dont include anything other than the JSON response. Response MUST be in VALID JSON format.
       `,
       stream: false,
-      // options: {
-      //   temperature: 0.7,
-      //   stop: ["\n"],
-      //   frequency_penalty: 0.5,
-      //   presence_penalty: 0.5,
-      //   num_predict: 256,
-      // },
+      options: {
+        temperature: 0.7,
+        stop: ["\n"],
+        frequency_penalty: 0.5,
+        presence_penalty: 0.5,
+        num_predict: 256,
+      },
     }),
   });
   const data = await response.json();
@@ -396,12 +396,54 @@ app.post("/voice-youtube-results", async (req, res) => {
 
 app.post("/youtube-video-speakers-extraction", async (req, res) => {
   const videoUrl = req.body.video_url;
-  await downloadYtAndConvertToMp3(videoUrl, "tmp.mp3");
+  if (!videoUrl) {
+    return res.status(400).json({ error: "Video URL is required" });
+  }
+  const videoId = videoUrl.split("v=")[1];
+  const audioPath = `${videoId}_120s.mp3`;
+  await downloadYtAndConvertToMp3(videoUrl, audioPath);
   console.log("Downloaded and converted to mp3");
-  // TODO: PYANNOTE SPEAKERS EXTRACTION
-  res.json({});
+  const audioPathInStorage = await uploadToFirebaseStorage(
+    audioPath,
+    audioPath
+  );
+  console.log(audioPathInStorage);
+  // // TODO: PYANNOTE SPEAKERS EXTRACTION
+  const pyannoteRes = await axios.post(
+    `${process.env.PYANNOTE_SERVER_URL}/diarize`,
+    {
+      url: audioPathInStorage,
+      //TODO: Add Webhook URL
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.PYANNOTE_API_KEY}`,
+      },
+    }
+  );
+  const jobId = pyannoteRes.data.jobId;
+  const status = pyannoteRes.data.status;
+  console.log({ jobId, status });
+
+  // TODO: Wait for the job to finish
+
+  res.json({ audioPathInStorage });
 });
 
 app.listen(port, async () => {
   console.log(`Webhook server listening on port ${port}`);
 });
+
+// Unused code:
+// const ytAudioBlob = localAudioFileToBlob(audioPath);
+// const uploadUrl = `https://delik-pyannote-speaker-diarization-3-1.hf.space/upload`;
+// const formData = new FormData();
+// formData.append("files", ytAudioBlob);
+// const uploadRes = await axios.post(uploadUrl, formData, {
+//   headers: { Authorization: `Bearer ${hf_token}` },
+// });
+// const [path] = uploadRes.data;
+// const app = await Client.connect("Delik/pyannote-speaker-diarization-3.1", {
+//   hf_token,
+// });
+// const result = app.predict("/process_audio", [path, 0, 0, 0]);

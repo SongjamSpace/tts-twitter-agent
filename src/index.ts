@@ -283,6 +283,7 @@ const youtubeSearchResults = async (voiceName: string) => {
   videos.map((video) => {
     results.push({
       title: video.snippet.title,
+      description: video.snippet.description,
       id: video.id.videoId,
       url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
     });

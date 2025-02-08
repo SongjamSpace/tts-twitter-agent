@@ -25,6 +25,7 @@ import {
   getNFTNameAndSymbol,
   getVoiceNameFromText,
 } from "./services/ollama.js";
+import { deployAIVoiceNFT } from "./services/contracts/blockchain.js";
 
 const app = express();
 app.use(cors());
@@ -386,18 +387,23 @@ app.post("/youtube-video-speakers-extraction", async (req, res) => {
   }
   const videoId = videoUrl.split("v=")[1];
   const audioPath = `${videoId}_120s.mp3`;
-  await downloadYtAndConvertToMp3(videoUrl, audioPath);
+  try {
+    await downloadYtAndConvertToMp3(videoUrl, audioPath);
+  } catch (error) {
+    console.log("Error downloading and converting to mp3", error);
+    return res.status(500).json({
+      error: "Error downloading and converting to mp3",
+      type: "YOUTUBE_DOWNLOAD",
+    });
+  }
   console.log("Downloaded and converted to mp3");
-  const audioPathInStorage = await uploadToFirebaseStorage(
-    audioPath,
-    audioPath
-  );
-  console.log(audioPathInStorage);
-  // // TODO: PYANNOTE SPEAKERS EXTRACTION
+  const audioUrl = await uploadToFirebaseStorage(audioPath, audioPath);
+  console.log({ audioUrl });
+  // PYANNOTE SPEAKERS EXTRACTION
   const pyannoteRes = await axios.post(
     `${process.env.PYANNOTE_SERVER_URL}/diarize`,
     {
-      url: audioPathInStorage,
+      url: audioUrl,
       webhook: `${process.env.OWN_SERVER_URL}/webhook/pyannote`,
     },
     {
@@ -410,8 +416,35 @@ app.post("/youtube-video-speakers-extraction", async (req, res) => {
   const jobId = pyannoteRes.data.jobId;
   const status = pyannoteRes.data.status;
   console.log({ jobId, status });
-  await createJobDoc(jobId, status, audioPath, audioPathInStorage);
-  res.json({ audioPathInStorage, jobId });
+  await createJobDoc(jobId, status, audioPath, audioUrl);
+  res.json({ audioUrl, jobId });
+});
+
+app.post("/speakers-extraction", async (req, res) => {
+  const audioUrl = req.body.audio_url;
+  const audioPath = req.body.audio_path;
+  if (!audioUrl) {
+    return res.status(400).json({ error: "Audio URL is required" });
+  }
+  // PYANNOTE SPEAKERS EXTRACTION
+  const pyannoteRes = await axios.post(
+    `${process.env.PYANNOTE_SERVER_URL}/diarize`,
+    {
+      url: audioUrl,
+      webhook: `${process.env.OWN_SERVER_URL}/webhook/pyannote`,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.PYANNOTE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  const jobId = pyannoteRes.data.jobId;
+  const status = pyannoteRes.data.status;
+  console.log({ jobId, status });
+  await createJobDoc(jobId, status, audioPath, audioUrl);
+  res.json({ audioPathInStorage: audioUrl, jobId });
 });
 
 app.post("/fetch-nft-info", async (req, res) => {
@@ -420,12 +453,16 @@ app.post("/fetch-nft-info", async (req, res) => {
   res.json({ nftInfo });
 });
 
-app.post("/mint-nft", async (req, res) => {
-  const text = req.body.voice_name;
+app.post("/deploy-nft", async (req, res) => {
+  const voiceName = req.body.voice_name;
   const nftName = req.body.nft_name;
   const nftSymbol = req.body.nft_symbol;
+  if (!voiceName || !nftName || !nftSymbol) {
+    return res.status(400).json({ error: "Invalid request" });
+  }
   // TODO: Mint the NFT
-  res.json({ nftName, nftSymbol });
+  const tx = await deployAIVoiceNFT(voiceName, nftName, nftSymbol, "test");
+  res.json({ tx });
 });
 
 app.listen(port, async () => {

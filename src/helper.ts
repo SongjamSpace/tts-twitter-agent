@@ -18,6 +18,7 @@ export const downloadYtAndConvertToMp3 = async (
     .setDuration(2 * 60) // Set duration to 120 seconds (2 minutes)
     .on("error", (err) => {
       console.error("Error during conversion:", err);
+      throw err;
     });
 
   // Setup a promise to handle the conversion completion

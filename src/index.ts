@@ -54,7 +54,7 @@ const searchYoutubeVideos = async (voiceName: string) => {
 const synthesizeVoice = async (
   text: string,
   audioUrl: string
-): Promise<{ url: string; path: string }> => {
+): Promise<{ url: string; path: string }[]> => {
   const app = await Client.connect("adamnusic/llasa-3b-tts", {
     hf_token,
   });
@@ -62,7 +62,7 @@ const synthesizeVoice = async (
     sample_audio_path: handle_file(audioUrl),
     target_text: text,
   });
-  const data = result.data as { url: string; path: string };
+  const data = result.data as { url: string; path: string }[];
   console.log(data);
   return data;
 };
@@ -157,8 +157,14 @@ app.post("/llasa-voice-synthesizer", async (req, res) => {
   if (!text) {
     return res.status(400).json({ error: "Text is required" });
   }
+  console.log("Synthesizing voice...: ", text, audioUrl);
   const data = await synthesizeVoice(text, audioUrl);
-  res.json({ data, url: (data as any).url });
+  if (data.length === 0) {
+    return res.status(400).json({ error: "No data returned" });
+  }
+  const url = data[0].url;
+  console.log({ text, url });
+  res.json({ data, url });
 });
 
 app.post("/find-twitter-videos", async (req, res) => {
@@ -314,8 +320,6 @@ app.post("/deploy-nft", async (req, res) => {
 });
 
 app.listen(port, async () => {
-  const nftInfo = await getNFTNameAndSymbolGroq("why are you gae?");
-  console.log(nftInfo);
   console.log(`Webhook server listening on port ${port}`);
 });
 

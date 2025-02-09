@@ -1,4 +1,4 @@
-import { db } from "../firebase.service.js";
+import { db, serverTimestamp } from "../firebase.service.js";
 
 const DB_NAME = "pyannote_jobs";
 
@@ -27,6 +27,7 @@ const createJobDoc = async (
     status: status,
     audioPath: audioPath,
     audioUrl,
+    createdAt: serverTimestamp(),
   });
 };
 const getJobDoc = async (docId: string) => {

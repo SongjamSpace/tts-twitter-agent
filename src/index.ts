@@ -119,30 +119,6 @@ const covertVoice = async (speechMp3Url: string) => {
   }
 };
 
-// app.post("/ytp-content", async (req, res) => {
-//   const vid = req.body.vid;
-//   const ytpEndpoint = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${vid}&key=${process.env.YOUTUBE_API_KEY}`;
-//   const ytpResponse = await axios.get(ytpEndpoint);
-//   const data = ytpResponse.data;
-//   const item = data.items[0];
-//   const title = item.snippet.title;
-//   const channelId = item.snippet.channelId;
-//   const channelTitle = item.snippet.channelTitle;
-//   const videoThumbnail = item.snippet.thumbnails.medium.url;
-//   const videoDescription = item.snippet.description;
-//   const iso8601Duration = item.contentDetails.duration;
-//   const duration = moment.duration(iso8601Duration).asSeconds();
-
-//   res.json({
-//     title,
-//     channelId,
-//     channelTitle,
-//     videoDescription,
-//     videoThumbnail,
-//     duration,
-//   });
-// });
-
 const searchYoutubeVideos = async (voiceName: string) => {
   // search for youtube videos with the voice name
   // what is the Best search for finding voice clips?
@@ -163,13 +139,13 @@ const voice_map = {
 
 const synthesizeVoice = async (
   text: string,
-  voice: keyof typeof voice_map
+  audioUrl: string
 ): Promise<{ url: string; path: string }> => {
   const app = await Client.connect("srinivasbilla/llasa-3b-tts", {
     hf_token,
   });
   const result = await app.predict("/infer", {
-    sample_audio_path: handle_file(voice_map[voice]),
+    sample_audio_path: handle_file(audioUrl),
     target_text: text,
   });
   const data = result.data as { url: string; path: string };
@@ -192,7 +168,8 @@ const getCookies = async () => {
 const loginWithCreds = async () => {
   await scraper.login(
     process.env.TWITTER_USERNAME,
-    process.env.TWITTER_PASSWORD
+    process.env.TWITTER_PASSWORD,
+    process.env.TWITTER_EMAIL
   );
   // const cookies = await scraper.getCookies();
   // fs.writeFileSync("cookies.json", JSON.stringify(cookies, null, 2));
@@ -316,11 +293,11 @@ app.post("/create-rvc-note", async (req, res) => {
 
 app.post("/llasa-voice-synthesizer", async (req, res) => {
   const text = req.body.text;
+  const audioUrl = req.body.audio_url;
   if (!text) {
     return res.status(400).json({ error: "Text is required" });
   }
-  const voice = req.body.voice as keyof typeof voice_map;
-  const data = await synthesizeVoice(text, voice);
+  const data = await synthesizeVoice(text, audioUrl);
   res.json({ data, url: (data as any).url });
 });
 

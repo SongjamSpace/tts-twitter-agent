@@ -237,6 +237,8 @@ const findVideos = async (text: string) => {
     videoUrl: tweet.videos[0].url,
     views: tweet.views,
     likes: tweet.likes,
+    username: tweet.username,
+    id: tweet.id,
   }));
 };
 

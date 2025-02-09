@@ -181,22 +181,37 @@ const scraper = new Scraper();
 
 const getCookies = async () => {
   // Load from cookies.json
+  if (!fs.existsSync("cookies.json")) {
+    return null;
+  }
   const cookies = JSON.parse(fs.readFileSync("cookies.json", "utf8"));
+  console.log(cookies);
   return cookies;
 };
 
+const loginWithCreds = async () => {
+  await scraper.login(
+    process.env.TWITTER_USERNAME,
+    process.env.TWITTER_PASSWORD
+  );
+  // const cookies = await scraper.getCookies();
+  // fs.writeFileSync("cookies.json", JSON.stringify(cookies, null, 2));
+};
+
 const login = async () => {
-  const cookies = await getCookies();
-  if (cookies) {
-    scraper.setCookies(cookies);
-  } else {
-    await scraper.login(
-      process.env.TWITTER_USERNAME,
-      process.env.TWITTER_PASSWORD
-    );
-    const cookies = await scraper.getCookies();
-    fs.writeFileSync("cookies.json", JSON.stringify(cookies, null, 2));
-  }
+  // const cookies = await getCookies();
+  // if (cookies) {
+  //   console.log("Using existing cookies");
+  //   try {
+  //     scraper.setCookies(cookies);
+  //   } catch (error) {
+  //     console.log("Error setting cookies, trying to login with creds", error);
+  //     await loginWithCreds();
+  //   }
+  // } else {
+  // console.log("No cookies found, logging in...");
+  await loginWithCreds();
+  // }
 };
 
 const findMentions = async () => {
@@ -207,6 +222,22 @@ const findMentions = async () => {
   );
   console.log(searchTweets);
   return searchTweets;
+};
+
+const findVideos = async (text: string) => {
+  const searchTweets = await scraper.fetchSearchTweets(
+    text,
+    10,
+    SearchMode.Videos
+  );
+  return searchTweets.tweets.map((tweet) => ({
+    text: tweet.text,
+    videoId: tweet.videos[0].id,
+    videoPreview: tweet.videos[0].preview,
+    videoUrl: tweet.videos[0].url,
+    views: tweet.views,
+    likes: tweet.likes,
+  }));
 };
 
 const youtubeSearchResults = async (voiceName: string) => {
@@ -289,6 +320,16 @@ app.post("/llasa-voice-synthesizer", async (req, res) => {
   const voice = req.body.voice as keyof typeof voice_map;
   const data = await synthesizeVoice(text, voice);
   res.json({ data, url: (data as any).url });
+});
+
+app.post("/find-twitter-videos", async (req, res) => {
+  const text = req.body.text;
+  if (!text) {
+    return res.status(400).json({ error: "Text is required" });
+  }
+  await login();
+  const videos = await findVideos(text);
+  res.json(videos);
 });
 
 app.post("/reply-to-mentions", async (req, res) => {
@@ -380,20 +421,26 @@ app.post("/webhook/pyannote", async (req, res) => {
   }
 });
 
-app.post("/youtube-video-speakers-extraction", async (req, res) => {
+app.post("/video-speakers-extraction", async (req, res) => {
   const videoUrl = req.body.video_url;
+  const isYoutube = req.body.is_youtube;
+  const videoId = req.body.video_id;
   if (!videoUrl) {
     return res.status(400).json({ error: "Video URL is required" });
   }
-  const videoId = videoUrl.split("v=")[1];
-  const audioPath = `${videoId}_120s.mp3`;
+  const vId = isYoutube ? videoUrl.split("v=")[1] : videoId;
+  const audioPath = `${vId}_120s.mp3`;
   try {
-    await downloadYtAndConvertToMp3(videoUrl, audioPath);
+    if (isYoutube) {
+      await downloadYtAndConvertToMp3(videoUrl, audioPath);
+    } else {
+      await downloadUrl(videoUrl, audioPath);
+    }
   } catch (error) {
     console.log("Error downloading and converting to mp3", error);
     return res.status(500).json({
       error: "Error downloading and converting to mp3",
-      type: "YOUTUBE_DOWNLOAD",
+      type: "VIDEO_DOWNLOAD",
     });
   }
   console.log("Downloaded and converted to mp3");

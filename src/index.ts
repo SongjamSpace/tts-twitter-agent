@@ -20,7 +20,7 @@ import {
   updateOnPyannoteJob,
 } from "./services/db/pyannoteJobs.service.js";
 import { deployAIVoiceNFT } from "./services/contracts/blockchain.js";
-import { getNFTNameAndSymbolGroq } from "./services/groq.js";
+import { getNFTNameAndSymbolGroq, getTokenomicsGroq } from "./services/groq.js";
 
 const app = express();
 app.use(cors());
@@ -317,6 +317,16 @@ app.post("/deploy-nft", async (req, res) => {
   // TODO: Mint the NFT
   const tx = await deployAIVoiceNFT(voiceName, nftName, nftSymbol, "test");
   res.json({ tx });
+});
+
+app.post("/tokenomics", async (req, res) => {
+  const voiceName = req.body.voice_name;
+  const tokenomics = await getTokenomicsGroq(voiceName);
+  res.json(tokenomics);
+});
+
+app.post("/poke", async (req, res) => {
+  res.send("pong");
 });
 
 app.listen(port, async () => {

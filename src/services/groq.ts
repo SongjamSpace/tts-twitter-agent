@@ -96,8 +96,35 @@ const getNFTNameAndSymbolGroq = async (
   return nftInfo;
 };
 
+const getTokenomicsGroq = async (voiceName: string) => {
+  const chatCompletion = await groq.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: `Find a tokenomics for the NFT based on the popularity of the voice.
+        Share two numbers, the first is the percentage of the total supply that will be minted to the voice creator, the second is the percentage of the total supply that will be minted to the team.
+        Share it in a json format: {"voice_owner": 0.1, "launcher": 0.9}. NOTE: the sum of the two numbers should be 1 and minimum of 0.5 for the launcher.`,
+      },
+      {
+        role: "user",
+        content: `Voice Name: ${voiceName}`,
+      },
+    ],
+    model: "llama-3.3-70b-versatile",
+    temperature: 0.7,
+    max_completion_tokens: 1024,
+    top_p: 1,
+    stream: false,
+    response_format: { type: "json_object" },
+  });
+  const tokenomicsObj = chatCompletion.choices[0]?.message?.content;
+  const tokenomics = JSON.parse(tokenomicsObj);
+  return tokenomics;
+};
+
 export {
   getVoiceNameFromTextGroq,
   analyzeVideoTitlesGroq,
   getNFTNameAndSymbolGroq,
+  getTokenomicsGroq,
 };

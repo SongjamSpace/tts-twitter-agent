@@ -66,6 +66,7 @@ const getNFTNameAndSymbolGroq = async (
 ): Promise<{
   name: string;
   symbol: string;
+  emoji: string;
 }> => {
   const chatCompletion = await groq.chat.completions.create({
     messages: [
@@ -90,6 +91,7 @@ const getNFTNameAndSymbolGroq = async (
   const nftInfo = JSON.parse(nftInfoObj) as {
     name: string;
     symbol: string;
+    emoji: string;
   };
   return nftInfo;
 };

@@ -55,7 +55,7 @@ const synthesizeVoice = async (
   text: string,
   audioUrl: string
 ): Promise<{ url: string; path: string }> => {
-  const app = await Client.connect("srinivasbilla/llasa-3b-tts", {
+  const app = await Client.connect("adamnusic/llasa-3b-tts", {
     hf_token,
   });
   const result = await app.predict("/infer", {

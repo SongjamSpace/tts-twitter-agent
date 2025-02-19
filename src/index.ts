@@ -26,6 +26,7 @@ const app = express();
 app.use(cors());
 import { getVoiceNameFromTextGroq } from "./services/groq.js";
 import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
+import { createCollection, mintNFT } from "./services/aptos/digitalAsset.js";
 app.use(bodyParser.json());
 app.use(bodyParser.raw({ type: "video/mp4", limit: "15mb" })); // Parse audio blobs
 
@@ -328,6 +329,17 @@ app.post("/tokenomics", async (req, res) => {
 
 app.post("/poke", async (req, res) => {
   res.send("pong");
+});
+app.post("/deploy-digital-asset-aptos", async (req, res) => {
+  const url = await createCollection();
+  res.json({ url });
+});
+app.post("/mint-digital-asset-aptos", async (req, res) => {
+  const description = req.body.description || "Test Description";
+  const name = req.body.name || "Test Name";
+  const uri = req.body.uri || "";
+  const url = await mintNFT(description, name, uri);
+  res.json({ url });
 });
 
 app.get("/get-voice-docs", async (req, res) => {

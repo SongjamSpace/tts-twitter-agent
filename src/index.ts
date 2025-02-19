@@ -25,6 +25,7 @@ import { getNFTNameAndSymbolGroq, getTokenomicsGroq } from "./services/groq.js";
 const app = express();
 app.use(cors());
 import { getVoiceNameFromTextGroq } from "./services/groq.js";
+import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
 app.use(bodyParser.json());
 app.use(bodyParser.raw({ type: "video/mp4", limit: "15mb" })); // Parse audio blobs
 
@@ -327,6 +328,11 @@ app.post("/tokenomics", async (req, res) => {
 
 app.post("/poke", async (req, res) => {
   res.send("pong");
+});
+
+app.get("/get-voice-docs", async (req, res) => {
+  const docs = await getUserVoiceSamplesDocs();
+  res.json(docs);
 });
 
 app.listen(port, async () => {

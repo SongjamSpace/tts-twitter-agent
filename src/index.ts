@@ -27,6 +27,8 @@ app.use(cors());
 import { getVoiceNameFromTextGroq } from "./services/groq.js";
 import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
 import { createCollection, mintNFT } from "./services/aptos/digitalAsset.js";
+import { db } from "./services/firebase.service.js";
+import { FieldValue } from "firebase-admin/firestore";
 app.use(bodyParser.json());
 app.use(bodyParser.raw({ type: "video/mp4", limit: "15mb" })); // Parse audio blobs
 
@@ -345,6 +347,25 @@ app.post("/mint-digital-asset-aptos", async (req, res) => {
 app.get("/get-voice-docs", async (req, res) => {
   const docs = await getUserVoiceSamplesDocs();
   res.json(docs);
+});
+
+app.post("/vote-voxifi", async (req, res) => {
+  const voteType = req.body.voteType;
+  const clipId = req.body.audioClipId;
+  const clipIdWithType = clipId + "_" + voteType;
+  await db.doc(`/votes/6UgvTVg4Aj4tSM49Ufot`).update({
+    [clipIdWithType]: FieldValue.increment(1),
+    [clipId]: FieldValue.increment(1),
+    total: FieldValue.increment(1),
+  });
+  res.json({ success: true });
+});
+
+app.post("/get-votes-voxifi", async (req, res) => {
+  const votes = await db.doc(`/votes/6UgvTVg4Aj4tSM49Ufot`).get();
+  const data = votes.data();
+  console.log(data);
+  res.json(data);
 });
 
 app.listen(port, async () => {

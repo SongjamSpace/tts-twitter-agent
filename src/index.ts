@@ -27,7 +27,7 @@ app.use(cors());
 import { getVoiceNameFromTextGroq } from "./services/groq.js";
 import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
 import { createCollection, mintNFT } from "./services/aptos/digitalAsset.js";
-import { db } from "./services/firebase.service.js";
+import { db, storage } from "./services/firebase.service.js";
 import { FieldValue } from "firebase-admin/firestore";
 app.use(bodyParser.json());
 app.use(bodyParser.raw({ type: "video/mp4", limit: "15mb" })); // Parse audio blobs
@@ -366,6 +366,19 @@ app.post("/get-votes-voxifi", async (req, res) => {
   const data = votes.data();
   console.log(data);
   res.json(data);
+});
+
+app.post("/store-tts-sample", async (req, res) => {
+  const url = req.body.audioUrl;
+  const ttsDocId = req.body.ttsDocId;
+  await downloadUrl(url, `${ttsDocId}.mp3`);
+  await storage.bucket().upload(`${ttsDocId}.mp3`, {
+    destination: `tts_samples/${ttsDocId}.mp3`,
+    metadata: {
+      contentType: "audio/mpeg", // Set the content type for MP3 files
+    },
+  });
+  res.json({ success: true });
 });
 
 app.listen(port, async () => {

@@ -10,7 +10,6 @@ import {
   downloadYtAndConvertToMp3,
   sliceAndCombineBySpeakers,
 } from "./helper.js";
-import fs from "fs";
 // import multer from "multer";
 import { Scraper, SearchMode } from "agent-twitter-client";
 import { uploadToFirebaseStorage } from "./services/storage/ytAudio.storage.js";
@@ -29,6 +28,7 @@ import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
 import { createCollection, mintNFT } from "./services/aptos/digitalAsset.js";
 import { db, storage } from "./services/firebase.service.js";
 import { FieldValue } from "firebase-admin/firestore";
+import path from "path";
 app.use(bodyParser.json());
 app.use(bodyParser.raw({ type: "video/mp4", limit: "15mb" })); // Parse audio blobs
 
@@ -379,6 +379,18 @@ app.post("/store-tts-sample", async (req, res) => {
     },
   });
   res.json({ success: true });
+});
+
+app.post("/tts-adam", async (req, res) => {
+  const text = req.body.text;
+  console.log({ text });
+
+  const audioName = "adam_tts_medium.wav";
+  // get the absolute path
+  const dirname = path.resolve();
+  const audioPath = path.join(dirname, audioName);
+  console.log({ audioPath });
+  res.sendFile(audioPath);
 });
 
 app.listen(port, async () => {

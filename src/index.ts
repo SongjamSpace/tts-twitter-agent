@@ -4,30 +4,30 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import { Client, handle_file } from "@gradio/client";
-import axios from "axios";
-import {
-  downloadUrl,
-  downloadYtAndConvertToMp3,
-  sliceAndCombineBySpeakers,
-} from "./helper.js";
-// import multer from "multer";
-import { Scraper, SearchMode } from "agent-twitter-client";
-import { uploadToFirebaseStorage } from "./services/storage/ytAudio.storage.js";
-import {
-  createJobDoc,
-  getJobDoc,
-  updateOnPyannoteJob,
-} from "./services/db/pyannoteJobs.service.js";
-import { deployAIVoiceNFT } from "./services/contracts/blockchain.js";
-import { getNFTNameAndSymbolGroq, getTokenomicsGroq } from "./services/groq.js";
+// import axios from "axios";
+// import {
+//   downloadUrl,
+//   downloadYtAndConvertToMp3,
+//   sliceAndCombineBySpeakers,
+// } from "./helper.js";
+// // import multer from "multer";
+// import { Scraper, SearchMode } from "agent-twitter-client";
+// import { uploadToFirebaseStorage } from "./services/storage/ytAudio.storage.js";
+// import {
+//   createJobDoc,
+//   getJobDoc,
+//   updateOnPyannoteJob,
+// } from "./services/db/pyannoteJobs.service.js";
+// import { deployAIVoiceNFT } from "./services/contracts/blockchain.js";
+// import { getNFTNameAndSymbolGroq, getTokenomicsGroq } from "./services/groq.js";
 
 const app = express();
 app.use(cors());
-import { getVoiceNameFromTextGroq } from "./services/groq.js";
-import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
-import { createCollection, mintNFT } from "./services/aptos/digitalAsset.js";
-import { db, storage } from "./services/firebase.service.js";
-import { FieldValue } from "firebase-admin/firestore";
+// import { getVoiceNameFromTextGroq } from "./services/groq.js";
+// import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
+// import { createCollection, mintNFT } from "./services/aptos/digitalAsset.js";
+// import { db, storage } from "./services/firebase.service.js";
+// import { FieldValue } from "firebase-admin/firestore";
 // import path from "path";
 app.use(bodyParser.json());
 app.use(bodyParser.raw({ type: "video/mp4", limit: "15mb" })); // Parse audio blobs
@@ -42,18 +42,18 @@ app.get("/", async (req, res) => {
 
 const hf_token = process.env.HF_TOKEN as `hf_${string}`;
 
-const searchYoutubeVideos = async (voiceName: string) => {
-  // search for youtube videos with the voice name
-  // what is the Best search for finding voice clips?
-  // voice name + "voice"
-  // Search Query #1:
-  const searchQuery = `${voiceName} voice`;
-  const searchEndpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${process.env.YOUTUBE_API_KEY}`;
-  const searchResponse = await axios.get(searchEndpoint);
-  const data = searchResponse.data;
-  const items = data.items;
-  return items;
-};
+// const searchYoutubeVideos = async (voiceName: string) => {
+//   // search for youtube videos with the voice name
+//   // what is the Best search for finding voice clips?
+//   // voice name + "voice"
+//   // Search Query #1:
+//   const searchQuery = `${voiceName} voice`;
+//   const searchEndpoint = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${searchQuery}&key=${process.env.YOUTUBE_API_KEY}`;
+//   const searchResponse = await axios.get(searchEndpoint);
+//   const data = searchResponse.data;
+//   const items = data.items;
+//   return items;
+// };
 
 const synthesizeVoice = async (
   text: string,
@@ -71,7 +71,7 @@ const synthesizeVoice = async (
   return data;
 };
 
-const scraper = new Scraper();
+// const scraper = new Scraper();
 
 // const getCookies = async () => {
 //   // Load from cookies.json
@@ -83,31 +83,31 @@ const scraper = new Scraper();
 //   return cookies;
 // };
 
-const loginWithCreds = async () => {
-  await scraper.login(
-    process.env.TWITTER_USERNAME,
-    process.env.TWITTER_PASSWORD,
-    process.env.TWITTER_EMAIL
-  );
-  // const cookies = await scraper.getCookies();
-  // fs.writeFileSync("cookies.json", JSON.stringify(cookies, null, 2));
-};
+// const loginWithCreds = async () => {
+//   await scraper.login(
+//     process.env.TWITTER_USERNAME,
+//     process.env.TWITTER_PASSWORD,
+//     process.env.TWITTER_EMAIL
+//   );
+//   // const cookies = await scraper.getCookies();
+//   // fs.writeFileSync("cookies.json", JSON.stringify(cookies, null, 2));
+// };
 
-const login = async () => {
-  // const cookies = await getCookies();
-  // if (cookies) {
-  //   console.log("Using existing cookies");
-  //   try {
-  //     scraper.setCookies(cookies);
-  //   } catch (error) {
-  //     console.log("Error setting cookies, trying to login with creds", error);
-  //     await loginWithCreds();
-  //   }
-  // } else {
-  // console.log("No cookies found, logging in...");
-  await loginWithCreds();
-  // }
-};
+// const login = async () => {
+//   // const cookies = await getCookies();
+//   // if (cookies) {
+//   //   console.log("Using existing cookies");
+//   //   try {
+//   //     scraper.setCookies(cookies);
+//   //   } catch (error) {
+//   //     console.log("Error setting cookies, trying to login with creds", error);
+//   //     await loginWithCreds();
+//   //   }
+//   // } else {
+//   // console.log("No cookies found, logging in...");
+//   await loginWithCreds();
+//   // }
+// };
 
 // const findMentions = async () => {
 //   const searchTweets = await scraper.fetchSearchTweets(
@@ -119,41 +119,41 @@ const login = async () => {
 //   return searchTweets;
 // };
 
-const findVideos = async (text: string) => {
-  const searchTweets = await scraper.fetchSearchTweets(
-    text,
-    10,
-    SearchMode.Videos
-  );
-  return searchTweets.tweets.map((tweet) => ({
-    text: tweet.text,
-    videoId: tweet.videos[0].id,
-    videoPreview: tweet.videos[0].preview,
-    videoUrl: tweet.videos[0].url,
-    views: tweet.views,
-    likes: tweet.likes,
-    username: tweet.username,
-    id: tweet.id,
-  }));
-};
+// const findVideos = async (text: string) => {
+//   const searchTweets = await scraper.fetchSearchTweets(
+//     text,
+//     10,
+//     SearchMode.Videos
+//   );
+//   return searchTweets.tweets.map((tweet) => ({
+//     text: tweet.text,
+//     videoId: tweet.videos[0].id,
+//     videoPreview: tweet.videos[0].preview,
+//     videoUrl: tweet.videos[0].url,
+//     views: tweet.views,
+//     likes: tweet.likes,
+//     username: tweet.username,
+//     id: tweet.id,
+//   }));
+// };
 
-const youtubeSearchResults = async (voiceName: string) => {
-  const videos = await searchYoutubeVideos(voiceName);
-  if (videos.length === 0) {
-    console.log("No videos found for voice: ", voiceName);
-    return null;
-  }
-  const results = [];
-  videos.map((video) => {
-    results.push({
-      title: video.snippet.title,
-      description: video.snippet.description,
-      id: video.id.videoId,
-      url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
-    });
-  });
-  return results;
-};
+// const youtubeSearchResults = async (voiceName: string) => {
+//   const videos = await searchYoutubeVideos(voiceName);
+//   if (videos.length === 0) {
+//     console.log("No videos found for voice: ", voiceName);
+//     return null;
+//   }
+//   const results = [];
+//   videos.map((video) => {
+//     results.push({
+//       title: video.snippet.title,
+//       description: video.snippet.description,
+//       id: video.id.videoId,
+//       url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+//     });
+//   });
+//   return results;
+// };
 
 app.post("/llasa-voice-synthesizer", async (req, res) => {
   const text = req.body.text;
@@ -171,215 +171,215 @@ app.post("/llasa-voice-synthesizer", async (req, res) => {
   res.json({ data, url });
 });
 
-app.post("/find-twitter-videos", async (req, res) => {
-  const text = req.body.text;
-  if (!text) {
-    return res.status(400).json({ error: "Text is required" });
-  }
-  await login();
-  const videos = await findVideos(text);
-  res.json(videos);
-});
+// app.post("/find-twitter-videos", async (req, res) => {
+//   const text = req.body.text;
+//   if (!text) {
+//     return res.status(400).json({ error: "Text is required" });
+//   }
+//   await login();
+//   const videos = await findVideos(text);
+//   res.json(videos);
+// });
 
-app.post("/text-to-voicename", async (req, res) => {
-  const text = req.body.text;
-  const result = await getVoiceNameFromTextGroq(text);
-  return res.json(result);
-});
+// app.post("/text-to-voicename", async (req, res) => {
+//   const text = req.body.text;
+//   const result = await getVoiceNameFromTextGroq(text);
+//   return res.json(result);
+// });
 
-app.post("/voice-youtube-results", async (req, res) => {
-  const voiceName = req.body.voice_name;
-  const videos = await youtubeSearchResults(voiceName);
-  res.json(videos);
-});
+// app.post("/voice-youtube-results", async (req, res) => {
+//   const voiceName = req.body.voice_name;
+//   const videos = await youtubeSearchResults(voiceName);
+//   res.json(videos);
+// });
 
-app.post("/webhook/pyannote", async (req, res) => {
-  const { jobId, status, output } = req.body;
-  if (status === "succeeded") {
-    const jobDoc = await getJobDoc(jobId);
-    if (!jobDoc) {
-      return res.status(400).json({ error: "Job not found" });
-    }
-    const { audioUrl } = jobDoc;
-    // TODO: Save the diarization to the database
-    const diarization = output.diarization as {
-      start: number;
-      end: number;
-      speaker: string;
-    }[];
-    // Download from url
-    const tempAudioPath = `${jobId}.mp3`;
-    await downloadUrl(audioUrl, tempAudioPath);
-    const audioPathObj = await sliceAndCombineBySpeakers(
-      tempAudioPath,
-      diarization
-    );
-    const paths = Object.values(audioPathObj);
-    console.log(audioPathObj);
-    await updateOnPyannoteJob(jobId, {
-      diarization,
-      speakers: paths,
-    });
-    // TODO: upload speakers audio to firebase
-    for (const path of paths) {
-      const pathInStorage = await uploadToFirebaseStorage(
-        path,
-        `${jobId}/${path}`
-      );
-      console.log(pathInStorage);
-    }
-    res.json({ speakers: paths });
-  }
-});
+// app.post("/webhook/pyannote", async (req, res) => {
+//   const { jobId, status, output } = req.body;
+//   if (status === "succeeded") {
+//     const jobDoc = await getJobDoc(jobId);
+//     if (!jobDoc) {
+//       return res.status(400).json({ error: "Job not found" });
+//     }
+//     const { audioUrl } = jobDoc;
+//     // TODO: Save the diarization to the database
+//     const diarization = output.diarization as {
+//       start: number;
+//       end: number;
+//       speaker: string;
+//     }[];
+//     // Download from url
+//     const tempAudioPath = `${jobId}.mp3`;
+//     await downloadUrl(audioUrl, tempAudioPath);
+//     const audioPathObj = await sliceAndCombineBySpeakers(
+//       tempAudioPath,
+//       diarization
+//     );
+//     const paths = Object.values(audioPathObj);
+//     console.log(audioPathObj);
+//     await updateOnPyannoteJob(jobId, {
+//       diarization,
+//       speakers: paths,
+//     });
+//     // TODO: upload speakers audio to firebase
+//     for (const path of paths) {
+//       const pathInStorage = await uploadToFirebaseStorage(
+//         path,
+//         `${jobId}/${path}`
+//       );
+//       console.log(pathInStorage);
+//     }
+//     res.json({ speakers: paths });
+//   }
+// });
 
-app.post("/video-speakers-extraction", async (req, res) => {
-  const videoUrl = req.body.video_url;
-  const isYoutube = req.body.is_youtube;
-  const videoId = req.body.video_id;
-  if (!videoUrl) {
-    return res.status(400).json({ error: "Video URL is required" });
-  }
-  const vId = isYoutube ? videoUrl.split("v=")[1] : videoId;
-  const audioPath = `${vId}_120s.mp3`;
-  try {
-    if (isYoutube) {
-      await downloadYtAndConvertToMp3(videoUrl, audioPath);
-    } else {
-      await downloadUrl(videoUrl, audioPath);
-    }
-  } catch (error) {
-    console.log("Error downloading and converting to mp3", error);
-    return res.status(500).json({
-      error: "Error downloading and converting to mp3",
-      type: "VIDEO_DOWNLOAD",
-    });
-  }
-  console.log("Downloaded and converted to mp3");
-  const audioUrl = await uploadToFirebaseStorage(audioPath, audioPath);
-  console.log({ audioUrl });
-  // PYANNOTE SPEAKERS EXTRACTION
-  const pyannoteRes = await axios.post(
-    `${process.env.PYANNOTE_SERVER_URL}/diarize`,
-    {
-      url: audioUrl,
-      webhook: `${process.env.OWN_SERVER_URL}/webhook/pyannote`,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.PYANNOTE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-  const jobId = pyannoteRes.data.jobId;
-  const status = pyannoteRes.data.status;
-  console.log({ jobId, status });
-  await createJobDoc(jobId, status, audioPath, audioUrl);
-  res.json({ audioUrl, jobId });
-});
+// app.post("/video-speakers-extraction", async (req, res) => {
+//   const videoUrl = req.body.video_url;
+//   const isYoutube = req.body.is_youtube;
+//   const videoId = req.body.video_id;
+//   if (!videoUrl) {
+//     return res.status(400).json({ error: "Video URL is required" });
+//   }
+//   const vId = isYoutube ? videoUrl.split("v=")[1] : videoId;
+//   const audioPath = `${vId}_120s.mp3`;
+//   try {
+//     if (isYoutube) {
+//       await downloadYtAndConvertToMp3(videoUrl, audioPath);
+//     } else {
+//       await downloadUrl(videoUrl, audioPath);
+//     }
+//   } catch (error) {
+//     console.log("Error downloading and converting to mp3", error);
+//     return res.status(500).json({
+//       error: "Error downloading and converting to mp3",
+//       type: "VIDEO_DOWNLOAD",
+//     });
+//   }
+//   console.log("Downloaded and converted to mp3");
+//   const audioUrl = await uploadToFirebaseStorage(audioPath, audioPath);
+//   console.log({ audioUrl });
+//   // PYANNOTE SPEAKERS EXTRACTION
+//   const pyannoteRes = await axios.post(
+//     `${process.env.PYANNOTE_SERVER_URL}/diarize`,
+//     {
+//       url: audioUrl,
+//       webhook: `${process.env.OWN_SERVER_URL}/webhook/pyannote`,
+//     },
+//     {
+//       headers: {
+//         Authorization: `Bearer ${process.env.PYANNOTE_API_KEY}`,
+//         "Content-Type": "application/json",
+//       },
+//     }
+//   );
+//   const jobId = pyannoteRes.data.jobId;
+//   const status = pyannoteRes.data.status;
+//   console.log({ jobId, status });
+//   await createJobDoc(jobId, status, audioPath, audioUrl);
+//   res.json({ audioUrl, jobId });
+// });
 
-app.post("/speakers-extraction", async (req, res) => {
-  const audioUrl = req.body.audio_url;
-  const audioPath = req.body.audio_path;
-  if (!audioUrl) {
-    return res.status(400).json({ error: "Audio URL is required" });
-  }
-  // PYANNOTE SPEAKERS EXTRACTION
-  const pyannoteRes = await axios.post(
-    `${process.env.PYANNOTE_SERVER_URL}/diarize`,
-    {
-      url: audioUrl,
-      webhook: `${process.env.OWN_SERVER_URL}/webhook/pyannote`,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.PYANNOTE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-  const jobId = pyannoteRes.data.jobId;
-  const status = pyannoteRes.data.status;
-  console.log({ jobId, status });
-  await createJobDoc(jobId, status, audioPath, audioUrl);
-  res.json({ audioPathInStorage: audioUrl, jobId });
-});
+// app.post("/speakers-extraction", async (req, res) => {
+//   const audioUrl = req.body.audio_url;
+//   const audioPath = req.body.audio_path;
+//   if (!audioUrl) {
+//     return res.status(400).json({ error: "Audio URL is required" });
+//   }
+//   // PYANNOTE SPEAKERS EXTRACTION
+//   const pyannoteRes = await axios.post(
+//     `${process.env.PYANNOTE_SERVER_URL}/diarize`,
+//     {
+//       url: audioUrl,
+//       webhook: `${process.env.OWN_SERVER_URL}/webhook/pyannote`,
+//     },
+//     {
+//       headers: {
+//         Authorization: `Bearer ${process.env.PYANNOTE_API_KEY}`,
+//         "Content-Type": "application/json",
+//       },
+//     }
+//   );
+//   const jobId = pyannoteRes.data.jobId;
+//   const status = pyannoteRes.data.status;
+//   console.log({ jobId, status });
+//   await createJobDoc(jobId, status, audioPath, audioUrl);
+//   res.json({ audioPathInStorage: audioUrl, jobId });
+// });
 
-app.post("/fetch-nft-info", async (req, res) => {
-  const text = req.body.text;
-  const nftInfo = await getNFTNameAndSymbolGroq(text);
-  res.json({ nftInfo });
-});
+// app.post("/fetch-nft-info", async (req, res) => {
+//   const text = req.body.text;
+//   const nftInfo = await getNFTNameAndSymbolGroq(text);
+//   res.json({ nftInfo });
+// });
 
-app.post("/deploy-nft", async (req, res) => {
-  const voiceName = req.body.voice_name;
-  const nftName = req.body.nft_name;
-  const nftSymbol = req.body.nft_symbol;
-  if (!voiceName || !nftName || !nftSymbol) {
-    return res.status(400).json({ error: "Invalid request" });
-  }
-  // TODO: Mint the NFT
-  const tx = await deployAIVoiceNFT(voiceName, nftName, nftSymbol, "test");
-  res.json({ tx });
-});
+// app.post("/deploy-nft", async (req, res) => {
+//   const voiceName = req.body.voice_name;
+//   const nftName = req.body.nft_name;
+//   const nftSymbol = req.body.nft_symbol;
+//   if (!voiceName || !nftName || !nftSymbol) {
+//     return res.status(400).json({ error: "Invalid request" });
+//   }
+//   // TODO: Mint the NFT
+//   const tx = await deployAIVoiceNFT(voiceName, nftName, nftSymbol, "test");
+//   res.json({ tx });
+// });
 
-app.post("/tokenomics", async (req, res) => {
-  const voiceName = req.body.voice_name;
-  const tokenomics = await getTokenomicsGroq(voiceName);
-  res.json(tokenomics);
-});
+// app.post("/tokenomics", async (req, res) => {
+//   const voiceName = req.body.voice_name;
+//   const tokenomics = await getTokenomicsGroq(voiceName);
+//   res.json(tokenomics);
+// });
 
-app.post("/poke", async (req, res) => {
-  res.send("pong");
-});
-app.post("/deploy-digital-asset-aptos", async (req, res) => {
-  const url = await createCollection();
-  res.json({ url });
-});
-app.post("/mint-digital-asset-aptos", async (req, res) => {
-  const description = req.body.description || "Test Description";
-  const name = req.body.name || "Test Name";
-  const uri = req.body.uri || "";
-  const url = await mintNFT(description, name, uri);
-  res.json({ url });
-});
+// app.post("/poke", async (req, res) => {
+//   res.send("pong");
+// });
+// app.post("/deploy-digital-asset-aptos", async (req, res) => {
+//   const url = await createCollection();
+//   res.json({ url });
+// });
+// app.post("/mint-digital-asset-aptos", async (req, res) => {
+//   const description = req.body.description || "Test Description";
+//   const name = req.body.name || "Test Name";
+//   const uri = req.body.uri || "";
+//   const url = await mintNFT(description, name, uri);
+//   res.json({ url });
+// });
 
-app.get("/get-voice-docs", async (req, res) => {
-  const docs = await getUserVoiceSamplesDocs();
-  res.json(docs);
-});
+// app.get("/get-voice-docs", async (req, res) => {
+//   const docs = await getUserVoiceSamplesDocs();
+//   res.json(docs);
+// });
 
-app.post("/vote-voxifi", async (req, res) => {
-  const voteType = req.body.voteType;
-  const clipId = req.body.audioClipId;
-  const clipIdWithType = clipId + "_" + voteType;
-  await db.doc(`/votes/6UgvTVg4Aj4tSM49Ufot`).update({
-    [clipIdWithType]: FieldValue.increment(1),
-    [clipId]: FieldValue.increment(1),
-    total: FieldValue.increment(1),
-  });
-  res.json({ success: true });
-});
+// app.post("/vote-voxifi", async (req, res) => {
+//   const voteType = req.body.voteType;
+//   const clipId = req.body.audioClipId;
+//   const clipIdWithType = clipId + "_" + voteType;
+//   await db.doc(`/votes/6UgvTVg4Aj4tSM49Ufot`).update({
+//     [clipIdWithType]: FieldValue.increment(1),
+//     [clipId]: FieldValue.increment(1),
+//     total: FieldValue.increment(1),
+//   });
+//   res.json({ success: true });
+// });
 
-app.post("/get-votes-voxifi", async (req, res) => {
-  const votes = await db.doc(`/votes/6UgvTVg4Aj4tSM49Ufot`).get();
-  const data = votes.data();
-  console.log(data);
-  res.json(data);
-});
+// app.post("/get-votes-voxifi", async (req, res) => {
+//   const votes = await db.doc(`/votes/6UgvTVg4Aj4tSM49Ufot`).get();
+//   const data = votes.data();
+//   console.log(data);
+//   res.json(data);
+// });
 
-app.post("/store-tts-sample", async (req, res) => {
-  const url = req.body.audioUrl;
-  const ttsDocId = req.body.ttsDocId;
-  await downloadUrl(url, `${ttsDocId}.mp3`);
-  await storage.bucket().upload(`${ttsDocId}.mp3`, {
-    destination: `tts_samples/${ttsDocId}.mp3`,
-    metadata: {
-      contentType: "audio/mpeg", // Set the content type for MP3 files
-    },
-  });
-  res.json({ success: true });
-});
+// app.post("/store-tts-sample", async (req, res) => {
+//   const url = req.body.audioUrl;
+//   const ttsDocId = req.body.ttsDocId;
+//   await downloadUrl(url, `${ttsDocId}.mp3`);
+//   await storage.bucket().upload(`${ttsDocId}.mp3`, {
+//     destination: `tts_samples/${ttsDocId}.mp3`,
+//     metadata: {
+//       contentType: "audio/mpeg", // Set the content type for MP3 files
+//     },
+//   });
+//   res.json({ success: true });
+// });
 
 // app.post("/tts-adam", async (req, res) => {
 //   const text = req.body.text;

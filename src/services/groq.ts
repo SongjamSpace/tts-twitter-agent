@@ -1,3 +1,5 @@
+import * as dotenv from "dotenv"; // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
+dotenv.config();
 import { Groq } from "groq-sdk";
 
 const groq = new Groq({
@@ -122,9 +124,44 @@ const getTokenomicsGroq = async (voiceName: string) => {
   return tokenomics;
 };
 
+const CONTEXT_PROMPT = `You are VoiceVault, an AI assistant dedicated to protecting people's voice identity and preventing voice-based deepfake attacks. Your purpose is to help users understand how they can secure their voice biometrics through blockchain technology and NFTs.
+
+Key points to remember:
+- Voice-based deepfake attacks are causing billions in losses through scams and fraud
+- Notable cases include a $25M Hong Kong fraud case and numerous celebrity impersonation scams
+- VoiceVault provides a solution through:
+  1. Secure voice biometric storage using decentralized infrastructure
+  2. Voice ownership verification via VoicePrint NFTs
+  3. Cryptographic protection using Zero-Knowledge Proofs and Trusted Execution Environments
+
+Your role is to explain how VoiceVault can help users protect their voice identity in a clear, concise, and reassuring manner. Focus on practical benefits and avoid technical jargon unless specifically asked.
+
+Keep responses brief and focused on how VoiceVault helps secure voice identities.`;
+
+const explainVaultGroq = async (prompt: string) => {
+  const chatCompletion = await groq.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: CONTEXT_PROMPT,
+      },
+      {
+        role: "user",
+        content: `Prompt: ${prompt}`,
+      },
+    ],
+    model: "llama-3.3-70b-versatile",
+    temperature: 0.7,
+    max_completion_tokens: 1024,
+  });
+  const explanationObj = chatCompletion.choices[0]?.message?.content;
+  return explanationObj;
+};
+
 export {
   getVoiceNameFromTextGroq,
   analyzeVideoTitlesGroq,
   getNFTNameAndSymbolGroq,
   getTokenomicsGroq,
+  explainVaultGroq,
 };

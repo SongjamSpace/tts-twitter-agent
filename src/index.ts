@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import { Client, handle_file } from "@gradio/client";
+import { explainVaultGroq } from "./services/groq.js";
 // import axios from "axios";
 // import {
 //   downloadUrl,
@@ -392,6 +393,12 @@ app.post("/llasa-voice-synthesizer", async (req, res) => {
 //   console.log({ audioPath });
 //   res.sendFile(audioPath);
 // });
+
+app.post("/voice-vault-chatbot", async (req, res) => {
+  const prompt = req.body.prompt;
+  const explanation = await explainVaultGroq(prompt);
+  res.json({ explanation });
+});
 
 app.listen(port, async () => {
   console.log(`Webhook server listening on port ${port}`);

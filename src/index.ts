@@ -5,6 +5,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import { Client, handle_file } from "@gradio/client";
 import { explainVaultGroq } from "./services/groq.js";
+import { getUserVoiceSamplesDocs } from "./services/db/userVoiceSamples.js";
 // import axios from "axios";
 // import {
 //   downloadUrl,
@@ -345,10 +346,10 @@ app.post("/llasa-voice-synthesizer", async (req, res) => {
 //   res.json({ url });
 // });
 
-// app.get("/get-voice-docs", async (req, res) => {
-//   const docs = await getUserVoiceSamplesDocs();
-//   res.json(docs);
-// });
+app.get("/get-voice-docs", async (req, res) => {
+  const docs = await getUserVoiceSamplesDocs();
+  res.json(docs);
+});
 
 // app.post("/vote-voxifi", async (req, res) => {
 //   const voteType = req.body.voteType;

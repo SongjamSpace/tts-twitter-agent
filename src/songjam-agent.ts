@@ -141,7 +141,18 @@ router.post("/handle-space-tweet", async (req, res) => {
     return;
   } else {
     console.log("Space is less than 60 minutes");
-    const tweets = await createTweetsFromTranscript(transcript.text);
+    const speakerMapping = [...spaceDoc.admins, ...spaceDoc.speakers].map(
+      (speaker: any) => ({
+        name: speaker.displayName,
+        twitterHandle: speaker.twitterScreenName,
+      })
+    );
+    const tweets = await createTweetsFromTranscript(
+      transcript.text,
+      spaceDoc.admins.map((s) => s.twitterScreenName),
+      speakerMapping,
+      `x.com/i/spaces/${spaceId}`
+    );
     console.log("Tweets created");
     await updateTweetSpacePipeline(tweetSpacePipeline.spaceId, {
       tweets,

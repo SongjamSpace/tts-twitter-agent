@@ -7,13 +7,18 @@ const client = new OpenAI({
   baseURL: "https://api.x.ai/v1",
 });
 
-export const createTweetsFromTranscript = async (transcript: string) => {
+export const createTweetsFromTranscript = async (
+  transcript: string,
+  hosts: string[],
+  speakerMapping: any,
+  spaceRecordingUrl: string
+) => {
   const completion = await client.chat.completions.create({
     model: "grok-2-latest",
     messages: [
       {
         role: "system",
-        content: `You are a helpful assistant that extracts tweet-worthy content from transcripts. Your task is to identify and extract the most engaging, informative, or entertaining snippets that would make good tweets.
+        content: `You are a helpful assistant that extracts tweet-worthy content from X Space transcripts. Your task is to identify and extract the most engaging, informative, or entertaining snippets that would make good standalone tweets.
 
             Focus on extracting:
             1. Key insights or valuable information
@@ -22,16 +27,34 @@ export const createTweetsFromTranscript = async (transcript: string) => {
             4. Thought-provoking statements
             5. Notable quotes or soundbites
 
-            For each tweet-worthy content:
+            Speaker Handling:
+            In the transcript, identify mentions of speakers and replace with their Twitter handles from this mapping:
+            ${JSON.stringify(speakerMapping)}
+            Only use the handles from the provided speakers data.
+
+            Content Guidelines:
+            - Extract direct quotes that are insightful or controversial
+            - Include specific numbers, data points, or predictions when available
+            - Break down complex ideas into digestible points
+            - Use simple, conversational language
+            - Create high-impact, shareable moments
+
+            For each tweet:
             - Keep it concise (under 280 characters)
             - Make it engaging and conversational
             - Preserve the original context and meaning
-            - Format it as a standalone tweet
+            - Format it as a standalone tweet (not part of a thread)
+            - Include the space recording URL when relevant: "${spaceRecordingUrl}"
+            - Use emojis sparingly (max 1 per tweet)
+            - Always use '@' symbol before Twitter handles
+            - Do not use hashtags
 
-            Must not use hashtags.
+            Special Formatting:
+            If songjam is mentioned, use this exact format:
+            "@SongjamSpace is a All-in-one toolkit for effortless growth, Number go up technology for @X. Get more listeners for your @XSpaces now"
 
             Return an array of 2-8 tweet-worthy contents, each as a separate string. Each tweet should be complete, self-contained and not exceed 280 characters.
-            Dont include anything other than the array of tweets.`,
+            Don't include anything other than the array of tweets.`,
       },
       {
         role: "user",
@@ -39,7 +62,6 @@ export const createTweetsFromTranscript = async (transcript: string) => {
       },
     ],
     temperature: 0.3,
-    //   max_tokens: 150,
   });
 
   return JSON.parse(completion.choices[0].message.content);
@@ -77,7 +99,7 @@ export const generateTwitterThread = async (
                            - Start with a powerful hook that creates curiosity
                            - Mention it's a thread using 🧵 (this is the only required emoji)
                            - Introduce the space topic without revealing too much
-                           - Include the Space recording URL without anyother text for the URL
+                           - Include the Space recording URL without anyother text for the URL: ${spaceRecordingUrl}
                            - Must be under 280 characters
 
                         2. Content Flow:

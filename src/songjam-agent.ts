@@ -91,7 +91,8 @@ router.post("/handle-space-tweet", async (req, res) => {
   const transcript = await getSpaceTranscriptById(spaceId);
   console.log("Transcription retrieved");
   const spaceDurationInMs = spaceDoc.endedAt - spaceDoc.startedAt;
-  const isSpaceMoreThan60Minutes = spaceDurationInMs > 60 * 60 * 1000;
+  const isSpaceMoreThan60Minutes = true;
+  // spaceDurationInMs > 60 * 60 * 1000;
   if (isSpaceMoreThan60Minutes) {
     console.log("Space is more than 60 minutes");
     const speakerMapping = [...spaceDoc.admins, ...spaceDoc.speakers].map(

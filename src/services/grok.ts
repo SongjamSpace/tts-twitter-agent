@@ -28,6 +28,8 @@ export const createTweetsFromTranscript = async (transcript: string) => {
             - Preserve the original context and meaning
             - Format it as a standalone tweet
 
+            Must not use hashtags.
+
             Return an array of 2-8 tweet-worthy contents, each as a separate string. Each tweet should be complete, self-contained and not exceed 280 characters.
             Dont include anything other than the array of tweets.`,
       },

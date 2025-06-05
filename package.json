@@ -14,10 +14,6 @@
   },
   "license": "ISC",
   "dependencies": {
-    "@aptos-labs/ts-sdk": "^1.35.0",
-    "@distube/ytdl-core": "^4.16.0",
-    "@gradio/client": "^1.10.0",
-    "agent-twitter-client": "^0.0.18",
     "axios": "^1.4.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
@@ -25,12 +21,11 @@
     "ethers": "^6.13.5",
     "express": "^4.18.2",
     "firebase-admin": "^11.11.0",
-    "fluent-ffmpeg": "^2.1.2",
-    "groq-sdk": "^0.15.0",
     "multer": "^1.4.5-lts.1",
-    "music-metadata": "^7.14.0",
     "nodemon": "^2.0.22",
-    "svelte": "^5.19.3"
+    "openai": "^5.1.0",
+    "svelte": "^5.19.3",
+    "twitter-api-v2": "^1.23.2"
   },
   "devDependencies": {
     "@tsconfig/svelte": "^5.0.4",

@@ -8,6 +8,7 @@ export type TweetSpacePipeline = {
   isThread?: boolean;
   tweetId?: string;
   isSent?: boolean;
+  currentTweetIdx?: number;
 };
 
 export const getTweetSpacePipelineById = async (spaceId: string) => {

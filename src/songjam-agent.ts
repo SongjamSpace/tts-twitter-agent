@@ -138,7 +138,12 @@ router.post("/handle-space-tweet", async (req, res) => {
     console.log("Space is less than 60 minutes");
     const tweets = await createTweetsFromTranscript(transcript.text);
     console.log("Tweets created");
-    await updateTweetSpacePipeline(tweetSpacePipeline.spaceId, tweets);
+    await updateTweetSpacePipeline(tweetSpacePipeline.spaceId, {
+      tweets,
+      isThread: false,
+      isSent: false,
+      currentTweetIdx: 0,
+    });
     // const tweetId = await sendTweet(tweetSpacePipeline.tweets[0]);
     const tweetId = "test";
     // TODO: Schedule next tweet

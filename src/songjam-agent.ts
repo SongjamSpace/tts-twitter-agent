@@ -122,6 +122,8 @@ router.post("/handle-space-tweet", async (req, res) => {
         isThread: true,
         isSent: true,
         tweetId,
+        status: "SENT",
+        updatedAt: Date.now(),
       });
       res.send({ status: "success", tweetId, tweets: thread });
     } catch (error) {
@@ -129,6 +131,8 @@ router.post("/handle-space-tweet", async (req, res) => {
         tweets: thread,
         isThread: true,
         isSent: false,
+        status: "ERROR",
+        updatedAt: Date.now(),
       });
       console.error("Error sending tweet thread", error);
       res.send({ status: "error", error: error.message });
@@ -143,6 +147,8 @@ router.post("/handle-space-tweet", async (req, res) => {
       isThread: false,
       isSent: false,
       currentTweetIdx: 0,
+      status: "PROCESSING",
+      updatedAt: Date.now(),
     });
     // const tweetId = await sendTweet(tweetSpacePipeline.tweets[0]);
     const tweetId = "test";

@@ -1,7 +1,7 @@
 import { db } from "../firebase.service.js";
 
 export type TweetSpacePipeline = {
-  status: string;
+  status: "NEW" | "PROCESSING" | "SENT" | "ERROR";
   spaceId: string;
   createdAt: Date;
   tweets: string[];
@@ -9,6 +9,7 @@ export type TweetSpacePipeline = {
   tweetId?: string;
   isSent?: boolean;
   currentTweetIdx?: number;
+  updatedAt?: number;
 };
 
 export const getTweetSpacePipelineById = async (spaceId: string) => {
@@ -29,7 +30,7 @@ export const updateTweetSpacePipeline = async (
 export const getLatestTweetSpacesPipeline = async () => {
   const tweetSpaces = await db
     .collection("tweetSpacesPipeline")
-    .where("status", "==", "new")
+    .where("status", "==", "NEW")
     .limit(1)
     // .orderBy("createdAt", "desc")
     .get();

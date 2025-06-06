@@ -6,11 +6,11 @@ const loginScraper = async () => {
     process.env.TWITTER_USERNAME,
     process.env.TWITTER_PASSWORD,
     process.env.TWITTER_EMAIL,
-    process.env.TWITTER_2FA_SECRET,
-    process.env.TWITTER_API_KEY,
-    process.env.TWITTER_API_SECRET,
-    process.env.TWITTER_ACCESS_TOKEN,
-    process.env.TWITTER_ACCESS_TOKEN_SECRET
+    process.env.TWITTER_2FA_SECRET
+    // process.env.TWITTER_API_KEY,
+    // process.env.TWITTER_API_SECRET,
+    // process.env.TWITTER_ACCESS_TOKEN,
+    // process.env.TWITTER_ACCESS_TOKEN_SECRET
   );
   console.log("Scraper initialized successfully");
   return scraper;
@@ -18,8 +18,19 @@ const loginScraper = async () => {
 
 export const sendTweet = async (tweetMessage: string) => {
   const scraper = await loginScraper();
-  const tweetResponse = await scraper.sendTweetV2(tweetMessage);
-  return tweetResponse.id;
+  const tweetResponse = await scraper.sendTweet(tweetMessage);
+  console.log("tweetResponse: ", tweetResponse);
+  const json = await tweetResponse.json();
+  console.log("json: ", json.data.create_tweet.tweet_results);
+  const latestTweet = await scraper.getLatestTweet("SongjamSpace", false);
+  if (latestTweet) {
+    console.log("latestTweet: ", latestTweet);
+    // write to a file
+    return latestTweet.id;
+  } else {
+    console.error("No latest tweet found");
+    return null;
+  }
 };
 
 export const sendTweetThread = async (tweets: string[]) => {

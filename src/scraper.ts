@@ -21,30 +21,36 @@ export const sendTweet = async (tweetMessage: string) => {
   const tweetResponse = await scraper.sendTweet(tweetMessage);
   console.log("tweetResponse: ", tweetResponse);
   const json = await tweetResponse.json();
-  console.log("json: ", json.data.create_tweet.tweet_results);
-  const latestTweet = await scraper.getLatestTweet("SongjamSpace", false);
-  if (latestTweet) {
-    console.log("latestTweet: ", latestTweet);
-    // write to a file
-    return latestTweet.id;
-  } else {
-    console.error("No latest tweet found");
-    return null;
+  const tweetId = json.data.create_tweet.tweet_results?.result?.rest_id;
+  console.log("json: ", JSON.stringify(json.data.create_tweet.tweet_results));
+  if (!tweetId) {
+    const latestTweet = await scraper.getLatestTweet("SongjamSpace", false);
+    if (latestTweet) {
+      return latestTweet.id;
+    } else {
+      console.error("No latest tweet found");
+      return null;
+    }
   }
+  return tweetId;
 };
 
 export const sendTweetThread = async (tweets: string[]) => {
   const scraper = await loginScraper();
-  let lastTweetId = "";
+  let lastTweetId = null;
   for (const tweet of tweets) {
-    if (lastTweetId) {
-      const tweetResponse = await scraper.sendTweetV2(tweet, lastTweetId);
-      lastTweetId = tweetResponse.id;
-    } else {
-      const tweetResponse = await scraper.sendTweetV2(tweet);
-      lastTweetId = tweetResponse.id;
+    const tweetResponse = await scraper.sendTweet(tweet, lastTweetId);
+    const json = await tweetResponse.json();
+    lastTweetId = json.data.create_tweet.tweet_results?.result?.rest_id;
+    if (!lastTweetId) {
+      const latestTweet = await scraper.getLatestTweet("SongjamSpace", false);
+      if (latestTweet) {
+        lastTweetId = latestTweet.id;
+      } else {
+        console.error("No latest tweet found");
+        return null;
+      }
     }
-    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
   return lastTweetId;
 };

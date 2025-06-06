@@ -8,8 +8,8 @@ import {
   createTweetsFromTranscript,
   generateTwitterThread,
 } from "./services/grok.js";
-import { TwitterApi } from "twitter-api-v2";
 import { getSpaceById, getSpaceTranscriptById } from "./services/db/spaces.js";
+import { sendTweet, sendTweetThread } from "./scraper.js";
 
 const router: Router = express.Router();
 
@@ -17,21 +17,21 @@ router.get("/", (req, res) => {
   res.send("songjam agent is running");
 });
 
-const client = new TwitterApi({
-  appKey: process.env.TWITTER_API_KEY,
-  appSecret: process.env.TWITTER_API_SECRET,
-  accessToken: process.env.TWITTER_ACCESS_TOKEN,
-  accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
-});
+// const client = new TwitterApi({
+//   appKey: process.env.TWITTER_API_KEY,
+//   appSecret: process.env.TWITTER_API_SECRET,
+//   accessToken: process.env.TWITTER_ACCESS_TOKEN,
+//   accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+// });
 
-const sendTweet = async (tweetMessage: string) => {
-  const tweet = await client.v2.tweet(tweetMessage);
-  return tweet.data.id;
-};
-const sendTweetThread = async (tweets: string[]) => {
-  const tweet = await client.v2.tweetThread(tweets);
-  return tweet[0].data.id;
-};
+// const sendTweet = async (tweetMessage: string) => {
+//   const tweet = await client.v2.tweet(tweetMessage);
+//   return tweet.data.id;
+// };
+// const sendTweetThread = async (tweets: string[]) => {
+//   const tweet = await client.v2.tweetThread(tweets);
+//   return tweet[0].data.id;
+// };
 
 // const tweetIds = [];
 // let lastTweetId = "";

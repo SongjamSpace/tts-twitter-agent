@@ -16,7 +16,7 @@ const loginScraper = async () => {
   return scraper;
 };
 
-export const sendTweet = async (tweetMessage: string) => {
+export const sendTweetOnScraper = async (tweetMessage: string) => {
   const scraper = await loginScraper();
   const tweetResponse = await scraper.sendTweet(tweetMessage);
   console.log("tweetResponse: ", tweetResponse);
@@ -35,7 +35,7 @@ export const sendTweet = async (tweetMessage: string) => {
   return tweetId;
 };
 
-export const sendTweetThread = async (tweets: string[]) => {
+export const sendTweetThreadOnScraper = async (tweets: string[]) => {
   const scraper = await loginScraper();
   let lastTweetId = null;
   for (const tweet of tweets) {

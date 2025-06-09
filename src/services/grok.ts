@@ -83,6 +83,7 @@ export const createTweetsFromTranscript = async (
 //                         Return your response as an array of strings, each string being a tweet in the thread.
 export const generateTwitterThread = async (
   transcript: string,
+  spaceTitle: string,
   hosts: string[],
   speakerMapping: any,
   spaceRecordingUrl: string
@@ -93,7 +94,7 @@ export const generateTwitterThread = async (
       {
         role: "system",
         content: `You are a smart assistant that generates an X/Twitter thread from a given transcript of an X Space. Create a thread that is captivating for users of the X social network (Twitter).
-
+                  Space Title: ${spaceTitle}
                         Thread Structure:
                         1. Hook Tweet (First Tweet):
                            - Start with a powerful hook that creates curiosity. Avoid always starting with the same phrase (e.g., don't always use 'Ever wondered'). Use a variety of engaging openers such as:
@@ -130,6 +131,7 @@ export const generateTwitterThread = async (
                         Only use the handles from the provided speakers data.
 
                         Content Guidelines:
+                        - Spell the Title of the space correctly in all the tweets
                         - Extract direct quotes that are insightful or controversial
                         - Include specific numbers, data points, or predictions
                         - Break down complex ideas into digestible points
@@ -144,6 +146,7 @@ export const generateTwitterThread = async (
                           - @SongjamSpace is a All-in-one toolkit for effortless growth, Number go up technology for @X.
                           - Get more listeners for your @XSpaces now
                           - Follow @SongjamSpace to get more such summaries
+                        5. Refrain from using first-person pronouns like "We" or "Our" in tweets. Instead, utilize the Twitter handles of the hosts or the space title to maintain a more personalized and engaging tone.
 
                         Return your response as an array of strings, each string being a tweet in the thread.`,
       },

@@ -9,20 +9,17 @@ import {
   generateTwitterThread,
 } from "./services/grok.js";
 import { getSpaceById, getSpaceTranscriptById } from "./services/db/spaces.js";
-import { sendTweet, sendTweetThread } from "./scraper.js";
+import { sendTweetOnScraper, sendTweetThreadOnScraper } from "./scraper.js";
+import { TwitterApi } from "twitter-api-v2";
+import { TwitterApiRateLimitPlugin } from "@twitter-api-v2/plugin-rate-limit";
+import dotenv from "dotenv";
+dotenv.config();
 
 const router: Router = express.Router();
 
 router.get("/", (req, res) => {
   res.send("songjam agent is running");
 });
-
-// const client = new TwitterApi({
-//   appKey: process.env.TWITTER_API_KEY,
-//   appSecret: process.env.TWITTER_API_SECRET,
-//   accessToken: process.env.TWITTER_ACCESS_TOKEN,
-//   accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
-// });
 
 // const sendTweet = async (tweetMessage: string) => {
 //   const tweet = await client.v2.tweet(tweetMessage);
@@ -60,9 +57,80 @@ router.post("/tweet-by-idx", async (req, res) => {
     res.send("No tweet message found");
     return;
   }
-  const tweetId = await sendTweet(tweetMessage);
+  const tweetId = await sendTweetOnScraper(tweetMessage);
   res.send({ status: "success", tweetId });
 });
+
+/**
+ * Attempts to send a tweet thread using the scraper, falling back to the Twitter API if needed.
+ * Updates the tweet space pipeline as appropriate.
+ * Returns an object: { success, tweetId, error }
+ */
+async function attemptSendTweetThread({ thread, spaceId, updateExtra = {} }) {
+  try {
+    const tweetId = await sendTweetThreadOnScraper(thread);
+    await updateTweetSpacePipeline(spaceId, {
+      isThread: true,
+      isSent: true,
+      tweetId,
+      status: "SENT",
+      updatedAt: Date.now(),
+      ...updateExtra,
+    });
+    return { success: true, tweetId };
+  } catch (error) {
+    console.log("Scraper errored, trying API: ", error);
+    try {
+      const rateLimitPlugin = new TwitterApiRateLimitPlugin();
+      const client = new TwitterApi(
+        {
+          appKey: process.env.TWITTER_API_KEY,
+          appSecret: process.env.TWITTER_API_SECRET,
+          accessToken: process.env.TWITTER_ACCESS_TOKEN,
+          accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+        },
+        { plugins: [rateLimitPlugin] }
+      );
+      const currentRateLimitForTweets = await rateLimitPlugin.v2.getRateLimit(
+        "tweets"
+      );
+      console.log(
+        "Rate Limit Status: ",
+        rateLimitPlugin.hasHitRateLimit(currentRateLimitForTweets)
+      );
+      console.log(
+        "Rate Limit Status Obsolete: ",
+        rateLimitPlugin.isRateLimitStatusObsolete(currentRateLimitForTweets)
+      );
+      console.log("Current Rate Limit: ", currentRateLimitForTweets);
+      if (
+        rateLimitPlugin.isRateLimitStatusObsolete(currentRateLimitForTweets)
+      ) {
+        // Check Rate Limit
+        const tweets = await client.v2.tweetThread(thread);
+        await updateTweetSpacePipeline(spaceId, {
+          isThread: true,
+          isSent: true,
+          tweetId: tweets[0].data.id,
+          status: "SENT",
+          updatedAt: Date.now(),
+          ...updateExtra,
+        });
+        return { success: true, tweetId: tweets[0].data.id };
+      }
+      return { success: false, error: "Rate limit not obsolete, cannot send" };
+    } catch (e) {
+      await updateTweetSpacePipeline(spaceId, {
+        isThread: true,
+        isSent: false,
+        status: "ERROR",
+        updatedAt: Date.now(),
+        ...updateExtra,
+      });
+      return { success: false, error: e.message || e };
+    }
+  }
+}
 
 router.post("/tweet-thread", async (req, res) => {
   const { spaceId } = req.body;
@@ -71,13 +139,13 @@ router.post("/tweet-thread", async (req, res) => {
     res.send("No tweet spaces pipeline found");
     return;
   }
-  const tweetId = await sendTweetThread(tweetSpacePipeline.tweets);
-  await updateTweetSpacePipeline(spaceId, {
-    isThread: true,
-    isSent: true,
-    tweetId,
-  });
-  res.send({ status: "success", tweetId });
+  const thread = tweetSpacePipeline.tweets;
+  const result = await attemptSendTweetThread({ thread, spaceId });
+  if (result.success) {
+    res.send({ status: "success", tweetId: result.tweetId, tweets: thread });
+  } else {
+    res.send({ status: "error", error: result.error });
+  }
 });
 
 router.post("/handle-space-tweet", async (req, res) => {
@@ -104,6 +172,7 @@ router.post("/handle-space-tweet", async (req, res) => {
 
     const thread = await generateTwitterThread(
       transcript.text,
+      spaceDoc.title,
       spaceDoc.admins.map((s) => s.twitterScreenName),
       speakerMapping,
       `x.com/i/spaces/${spaceId}`
@@ -114,29 +183,15 @@ router.post("/handle-space-tweet", async (req, res) => {
       res.send("No tweet spaces pipeline found");
       return;
     }
-
-    // Tweet as a thread
-    try {
-      const tweetId = await sendTweetThread(thread);
-      await updateTweetSpacePipeline(spaceId, {
-        tweets: thread,
-        isThread: true,
-        isSent: true,
-        tweetId,
-        status: "SENT",
-        updatedAt: Date.now(),
-      });
-      res.send({ status: "success", tweetId, tweets: thread });
-    } catch (error) {
-      await updateTweetSpacePipeline(spaceId, {
-        tweets: thread,
-        isThread: true,
-        isSent: false,
-        status: "ERROR",
-        updatedAt: Date.now(),
-      });
-      console.error("Error sending tweet thread", error);
-      res.send({ status: "error", error: error.message });
+    const result = await attemptSendTweetThread({
+      thread,
+      spaceId,
+      updateExtra: { tweets: thread },
+    });
+    if (result.success) {
+      res.send({ status: "success", tweetId: result.tweetId, tweets: thread });
+    } else {
+      res.send({ status: "error", error: result.error });
     }
     return;
   } else {
@@ -200,4 +255,25 @@ router.post("/handle-space-tweet", async (req, res) => {
 //   res.send({ status: "success", tweetId });
 // });
 
+// const rateLimitPlugin = new TwitterApiRateLimitPlugin();
+// const client = new TwitterApi(
+//   {
+//     appKey: process.env.TWITTER_API_KEY,
+//     appSecret: process.env.TWITTER_API_SECRET,
+//     accessToken: process.env.TWITTER_ACCESS_TOKEN,
+//     accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+//   },
+//   { plugins: [rateLimitPlugin] }
+// );
+// const currentRateLimitForTweets = await rateLimitPlugin.v2.getRateLimit(
+//   "tweets"
+// );
+// console.log(
+//   "Rate Limit Status: ",
+//   rateLimitPlugin.hasHitRateLimit(currentRateLimitForTweets)
+// );
+// console.log(
+//   "Rate Limit Status Obsolete: ",
+//   rateLimitPlugin.isRateLimitStatusObsolete(currentRateLimitForTweets)
+// );
 export default router;

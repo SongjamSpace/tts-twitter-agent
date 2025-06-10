@@ -163,12 +163,17 @@ router.post("/handle-space-tweet", async (req, res) => {
   // spaceDurationInMs > 60 * 60 * 1000;
   if (isSpaceMoreThan60Minutes) {
     console.log("Space is more than 60 minutes");
-    const speakerMapping = [...spaceDoc.admins, ...spaceDoc.speakers].map(
-      (speaker: any) => ({
+    const speakerMapping = [
+      ...spaceDoc.admins.map((speaker: any) => ({
         name: speaker.displayName,
         twitterHandle: speaker.twitterScreenName,
-      })
-    );
+      })),
+      ...spaceDoc.speakers.map((speaker: any) => ({
+        name: speaker.displayName,
+        twitterHandle: speaker.twitterScreenName,
+      })),
+      { name: "Virtuals", twitterHandle: "virtuals_io" },
+    ];
 
     const thread = await generateTwitterThread(
       transcript.text,
@@ -196,12 +201,17 @@ router.post("/handle-space-tweet", async (req, res) => {
     return;
   } else {
     console.log("Space is less than 60 minutes");
-    const speakerMapping = [...spaceDoc.admins, ...spaceDoc.speakers].map(
-      (speaker: any) => ({
+    const speakerMapping = [
+      ...spaceDoc.admins.map((speaker: any) => ({
         name: speaker.displayName,
         twitterHandle: speaker.twitterScreenName,
-      })
-    );
+      })),
+      ...spaceDoc.speakers.map((speaker: any) => ({
+        name: speaker.displayName,
+        twitterHandle: speaker.twitterScreenName,
+      })),
+      { name: "Virtuals", twitterHandle: "virtuals_io" },
+    ];
     const tweets = await createTweetsFromTranscript(
       transcript.text,
       spaceDoc.admins.map((s) => s.twitterScreenName),

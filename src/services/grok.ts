@@ -97,16 +97,11 @@ export const generateTwitterThread = async (
                   Space Title: ${spaceTitle}
                         Thread Structure:
                         1. Hook Tweet (First Tweet):
-                           - Start with a powerful hook that creates curiosity. Avoid always starting with the same phrase (e.g., don't always use 'Ever wondered'). Use a variety of engaging openers such as:
-                             - "What if I told you..."
-                             - "Here's what nobody tells you about..."
-                             - "This blew my mind:"
-                             - "The biggest surprise from the Space:"
-                             - "You won't believe what happened when..."
-                             - Or create a unique hook relevant to the Space topic.
+                           - Start with a powerful, unique hook that creates curiosity.
+                           - Be creative and craft a hook that is relevant to the Space topic and the transcript.
                            - Mention it's a thread using 🧵 (this is the only required emoji)
                            - Introduce the space topic without revealing too much
-                           - Include the Space recording URL without anyother text for the URL: ${spaceRecordingUrl}
+                           - Include the Space recording URL without any other text for the URL: ${spaceRecordingUrl}
                            - Must be under 280 characters
 
                         2. Content Flow:

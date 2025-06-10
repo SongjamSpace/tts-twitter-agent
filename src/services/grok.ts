@@ -52,6 +52,7 @@ export const createTweetsFromTranscript = async (
             Special Formatting:
             If songjam is mentioned, use this exact format:
             "@SongjamSpace is a All-in-one toolkit for effortless growth, Number go up technology for @X. Get more listeners for your @XSpaces now"
+            If virtual ecosystem or virtuals is mentioned, either address it as @virtuals_io or Virtuals Ecosystem.
 
             Return an array of 2-8 tweet-worthy contents, each as a separate string. Each tweet should be complete, self-contained and not exceed 280 characters.
             Don't include anything other than the array of tweets.`,

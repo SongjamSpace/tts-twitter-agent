@@ -172,7 +172,6 @@ router.post("/handle-space-tweet", async (req, res) => {
         name: speaker.displayName,
         twitterHandle: speaker.twitterScreenName,
       })),
-      { name: "Virtuals", twitterHandle: "virtuals_io" },
     ];
 
     const thread = await generateTwitterThread(
@@ -210,7 +209,6 @@ router.post("/handle-space-tweet", async (req, res) => {
         name: speaker.displayName,
         twitterHandle: speaker.twitterScreenName,
       })),
-      { name: "Virtuals", twitterHandle: "virtuals_io" },
     ];
     const tweets = await createTweetsFromTranscript(
       transcript.text,

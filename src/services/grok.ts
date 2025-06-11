@@ -157,3 +157,53 @@ export const generateTwitterThread = async (
 
   return JSON.parse(completion.choices[0].message.content) as string[];
 };
+
+export const createTweetFromFinalSummary = async (
+  transcript: string,
+  spaceTitle: string,
+  hosts: string[],
+  speakerMapping: { name: string; twitterHandle: string }[],
+  spaceRecordingUrl: string
+): Promise<string> => {
+  const completion = await client.chat.completions.create({
+    model: "grok-2-latest",
+    messages: [
+      {
+        role: "system",
+        content: `You are a smart assistant that generates a single, long-form, and highly engaging tweet from the transcript of an X (Twitter) Space.
+Your task: Write an informative and captivating tweet that reads like a mini-article — summarizing the key takeaways, insights, and themes from the Space in a structured and readable way.
+Context:
+Space Title: ${spaceTitle}
+
+Guidelines:
+- Cover multiple key insights, themes, and speaker points
+- Max length: 25000 characters
+- Keep it detailed, self-contained, and engaging — the reader should get full context without needing to watch the whole space.
+- Structure the tweet clearly using line breaks to improve readability (like a short-form blog post).
+- Include the Space recording URL at the end of the tweet: ${spaceRecordingUrl}
+- Use simple, conversational language
+- Avoid hashtags (#)
+- Use emojis sparingly — maximum of 1, only if it adds clarity or emotional punch.
+- Always use '@' before Twitter handles (e.g., @username) for speaker mentions
+- If "Song Jam" is mentioned, spell it exactly as “Songjam”.
+- If "Virtual Ecosystem" or "Virtuals" is mentioned, address it as @virtuals_io
+- Do not use first-person pronouns like "We" or "Our"; instead, use the Twitter handles of the hosts or the space title
+
+Speaker Handling:
+Replace any mentioned speaker names in the transcript with their corresponding Twitter handles from this mapping:
+${JSON.stringify(speakerMapping)}
+Use the handle only if the speaker is referenced in the transcript.
+
+Output:
+Return a single tweet string — not a thread or an array — written in a clear, engaging, and informative style.`,
+      },
+      {
+        role: "user",
+        content: `Summarize this transcript in a single tweet: "${transcript}"`,
+      },
+    ],
+    temperature: 0.3,
+  });
+
+  return completion.choices[0].message.content.trim();
+};

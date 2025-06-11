@@ -5,6 +5,7 @@ export type TweetSpacePipeline = {
   spaceId: string;
   createdAt: Date;
   tweets: string[];
+  tweet: string;
   isThread?: boolean;
   tweetId?: string;
   isSent?: boolean;

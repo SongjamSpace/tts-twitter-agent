@@ -30,8 +30,16 @@ export type SpaceTranscript = {
   text: string;
 };
 
-export const getSpaceTranscriptById = async (spaceId: string) => {
+export const getSpaceFullTranscriptById = async (spaceId: string) => {
   const transcriptDocId = "full_transcript";
+  const transcriptDoc = await db
+    .doc(`spaces/${spaceId}/summaries/${transcriptDocId}`)
+    .get();
+  return transcriptDoc.data() as SpaceTranscript;
+};
+
+export const getSpaceFinalSummaryById = async (spaceId: string) => {
+  const transcriptDocId = "final_summary";
   const transcriptDoc = await db
     .doc(`spaces/${spaceId}/summaries/${transcriptDocId}`)
     .get();

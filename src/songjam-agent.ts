@@ -175,6 +175,32 @@ router.post("/tweet-thread", async (req, res) => {
   }
 });
 
+router.post("/send-tweet", async (req, res) => {
+  const { spaceId } = req.body;
+  const tweetSpacePipeline = await getTweetSpacePipelineById(spaceId);
+  if (!tweetSpacePipeline || !tweetSpacePipeline.tweet) {
+    res.send("No tweet spaces pipeline found");
+    return;
+  }
+  if (tweetSpacePipeline.isSent) {
+    res.send({
+      status: "success",
+      message: "Tweet already sent",
+      tweetId: tweetSpacePipeline.tweetId,
+    });
+    return;
+  }
+  const tweet = tweetSpacePipeline.tweet;
+  const tweetId = await sendApiTweet(tweet);
+  await updateTweetSpacePipeline(spaceId, {
+    isSent: true,
+    tweetId,
+    status: "SENT",
+    updatedAt: Date.now(),
+  });
+  res.send({ status: "success", tweetId });
+});
+
 router.post("/handle-space-tweet", async (req, res) => {
   const { spaceId } = req.body;
   const tweetSpacePipeline = await getTweetSpacePipelineById(spaceId);
@@ -199,9 +225,10 @@ router.post("/handle-space-tweet", async (req, res) => {
   const tweet = await createTweetFromFinalSummary(
     transcript.text,
     spaceDoc.title,
+    spaceDoc.isBroadcast,
     admins,
     speakerMapping,
-    `x.com/i/spaces/${spaceId}`
+    `x.com/i/${spaceDoc.isBroadcast ? "broadcasts" : "spaces"}/${spaceId}`
   );
   console.log("Tweet created: ", tweet);
   const tweetId = await sendApiTweet(tweet);

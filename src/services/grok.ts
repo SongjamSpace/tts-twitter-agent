@@ -161,19 +161,21 @@ export const generateTwitterThread = async (
 export const createTweetFromFinalSummary = async (
   transcript: string,
   spaceTitle: string,
+  isBroadcast: boolean,
   hosts: string[],
   speakerMapping: { name: string; twitterHandle: string }[],
   spaceRecordingUrl: string
 ): Promise<string> => {
+  const spaceType = isBroadcast ? "Live" : "Space";
   const completion = await client.chat.completions.create({
     model: "grok-2-latest",
     messages: [
       {
         role: "system",
-        content: `You are a smart assistant that generates a single, long-form, and highly engaging tweet from the transcript of an X (Twitter) Space.
-Your task: Write an informative and captivating tweet that reads like a mini-article — summarizing the key takeaways, insights, and themes from the Space in a structured and readable way.
+        content: `You are a smart assistant that generates a single, long-form, and highly engaging tweet from the transcript of an X (Twitter) ${spaceType}.
+Your task: Write an informative and captivating tweet that reads like a mini-article — summarizing the key takeaways, insights, and themes from the ${spaceType} in a structured and readable way.
 Context:
-Space Title: ${spaceTitle}
+${spaceType} Title: ${spaceTitle}
 
 Guidelines:
 - Cover multiple key insights, themes, and speaker points

@@ -18,6 +18,7 @@ export type Space = {
     twitterScreenName: string;
     userId: string;
   }[];
+  isBroadcast: boolean;
 };
 
 export const getSpaceById = async (spaceId: string) => {

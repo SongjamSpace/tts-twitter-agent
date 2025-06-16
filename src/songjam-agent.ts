@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   getTweetSpacePipelineById,
   updateTweetSpacePipeline,
+  createTweetSpacePipeline,
 } from "./services/db/tweetSpacesPipeline.js";
 import {
   createTweetFromFinalSummary,
@@ -204,12 +205,14 @@ router.post("/send-tweet", async (req, res) => {
 router.post("/handle-space-tweet", async (req, res) => {
   const { spaceId } = req.body;
   const tweetSpacePipeline = await getTweetSpacePipelineById(spaceId);
-  if (!tweetSpacePipeline) {
-    res.send("No tweet spaces pipeline found");
-    return;
-  }
   const spaceDoc = await getSpaceById(spaceId);
+  if (!spaceDoc) {
+    return res.status(404).send("No space doc found");
+  }
   const transcript = await getSpaceFullTranscriptById(spaceId);
+  if (!transcript) {
+    return res.status(404).send(`No transcript found for: ${spaceId}`);
+  }
   console.log("Transcription retrieved");
   const admins = spaceDoc.admins.map((s) => s.twitterScreenName);
   const speakerMapping = [
@@ -232,16 +235,28 @@ router.post("/handle-space-tweet", async (req, res) => {
       spaceDoc.isBroadcast ? "broadcasts" : "spaces"
     }/${spaceId}`
   );
-  console.log("Tweet created: ", tweet);
+  console.log("Tweet created");
   const tweetId = await sendApiTweet(tweet);
-  await updateTweetSpacePipeline(spaceId, {
-    isThread: false,
-    isSent: true,
-    tweetId: "test",
-    tweet,
-    status: "SENT",
-    updatedAt: Date.now(),
-  });
+  if (tweetSpacePipeline) {
+    await updateTweetSpacePipeline(spaceId, {
+      isThread: false,
+      isSent: true,
+      tweetId,
+      tweet,
+      status: "SENT",
+      updatedAt: Date.now(),
+    });
+  } else {
+    await createTweetSpacePipeline(spaceId, {
+      isThread: false,
+      isSent: true,
+      tweetId,
+      tweet,
+      status: "SENT",
+      updatedAt: Date.now(),
+      createdAt: Date.now(),
+    });
+  }
   res.send({ status: "success" });
 
   // const spaceDurationInMs = spaceDoc.endedAt - spaceDoc.startedAt;

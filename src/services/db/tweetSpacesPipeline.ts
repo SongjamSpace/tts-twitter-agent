@@ -3,7 +3,7 @@ import { db } from "../firebase.service.js";
 export type TweetSpacePipeline = {
   status: "NEW" | "PROCESSING" | "SENT" | "ERROR";
   spaceId: string;
-  createdAt: Date;
+  createdAt: number;
   tweets: string[];
   tweet: string;
   isThread?: boolean;
@@ -19,6 +19,13 @@ export const getTweetSpacePipelineById = async (spaceId: string) => {
     .doc(spaceId)
     .get();
   return tweetSpaces.data() as TweetSpacePipeline;
+};
+
+export const createTweetSpacePipeline = async (
+  spaceId: string,
+  obj: Partial<TweetSpacePipeline>
+) => {
+  await db.collection("tweetSpacesPipeline").doc(spaceId).set(obj);
 };
 
 export const updateTweetSpacePipeline = async (

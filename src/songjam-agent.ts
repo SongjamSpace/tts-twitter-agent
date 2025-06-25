@@ -233,7 +233,8 @@ router.post("/handle-space-tweet", async (req, res) => {
     speakerMapping,
     `https://x.com/i/${
       spaceDoc.isBroadcast ? "broadcasts" : "spaces"
-    }/${spaceId}`
+    }/${spaceId}`,
+    spaceDoc.startedAt
   );
   console.log("Tweet created");
   const tweetId = await sendApiTweet(tweet);

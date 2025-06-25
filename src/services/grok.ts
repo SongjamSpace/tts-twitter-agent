@@ -164,7 +164,8 @@ export const createTweetFromFinalSummary = async (
   isBroadcast: boolean,
   hosts: string[],
   speakerMapping: { name: string; twitterHandle: string }[],
-  spaceRecordingUrl: string
+  spaceRecordingUrl: string,
+  spaceStartedAt: number
 ): Promise<string> => {
   const spaceType = isBroadcast ? "Live" : "Space";
   const completion = await client.chat.completions.create({
@@ -176,6 +177,8 @@ export const createTweetFromFinalSummary = async (
 Your task: Write an informative and captivating tweet that reads like a mini-article — summarizing the key takeaways, insights, and themes from the ${spaceType} in a structured and readable way.
 Context:
 ${spaceType} Title: ${spaceTitle}
+${spaceType === "Space" ? `Hosts: ${hosts.join(",")}` : ""}
+Started at: ${new Date(spaceStartedAt)} 
 
 Guidelines:
 - Cover multiple key insights, themes, and speaker points
@@ -190,7 +193,9 @@ Guidelines:
 - Do not use first-person pronouns like "We" or "Our"; instead, use the Twitter handles of the hosts or the space title
 - Pay attention to correct spelling of names based on context, reference with account bios and context pipeline
 - Maintain correct spelling throughout the description
-- Do not use ** to bold the text as twitter does not support it
+- Do not use ** ** for the texts
+- Start with a more dynamic opening sentence, Use the provided date to craft a sentence that conveys the timing of the event in a more natural way. Ignore if mentioning the time if it's very recent
+- Do not share the raw date in the tweet
 
 Additional Context of Names and Accounts:
 - If "Song Jam" is mentioned, spell it exactly as “Songjam”.

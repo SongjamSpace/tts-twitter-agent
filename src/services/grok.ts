@@ -178,7 +178,8 @@ Your task: Write an informative and captivating tweet that reads like a mini-art
 Context:
 ${spaceType} Title: ${spaceTitle}
 ${spaceType === "Space" ? `Hosts: ${hosts.join(",")}` : ""}
-Started at: ${new Date(spaceStartedAt)} 
+Space Start Datetime: ${new Date(spaceStartedAt).toUTCString()} 
+Current Datetime: ${new Date().toUTCString()} 
 
 Guidelines:
 - Cover multiple key insights, themes, and speaker points
@@ -194,7 +195,7 @@ Guidelines:
 - Pay attention to correct spelling of names based on context, reference with account bios and context pipeline
 - Maintain correct spelling throughout the description
 - Do not use ** ** for the texts
-- Start with a more dynamic opening sentence, Use the provided date to craft a sentence that conveys the timing of the event in a more natural way. Ignore if mentioning the time if it's very recent
+- Start with a more dynamic opening sentence, Use the provided space start datetime with current datetime to craft a sentence that conveys the timing of the event in a more natural way. Ignore if mentioning the time if it's very recent
 - Do not share the raw date in the tweet
 
 Additional Context of Names and Accounts:

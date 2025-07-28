@@ -205,6 +205,9 @@ router.post("/send-tweet", async (req, res) => {
 router.post("/handle-space-tweet", async (req, res) => {
   const { spaceId } = req.body;
   const tweetSpacePipeline = await getTweetSpacePipelineById(spaceId);
+  if (tweetSpacePipeline?.status === "SENT") {
+    return res.send("Tweet already sent");
+  }
   const spaceDoc = await getSpaceById(spaceId);
   if (!spaceDoc) {
     return res.status(404).send("No space doc found");
@@ -248,6 +251,7 @@ router.post("/handle-space-tweet", async (req, res) => {
       updatedAt: Date.now(),
     });
   } else {
+    console.log("Creating tweet doc");
     await createTweetSpacePipeline(spaceId, {
       isThread: false,
       isSent: true,

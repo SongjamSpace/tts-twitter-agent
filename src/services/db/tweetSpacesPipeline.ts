@@ -14,11 +14,12 @@ export type TweetSpacePipeline = {
 };
 
 export const getTweetSpacePipelineById = async (spaceId: string) => {
-  const tweetSpaces = await db
+  const tweetDoc = await db
     .collection("tweetSpacesPipeline")
     .doc(spaceId)
     .get();
-  return tweetSpaces.data() as TweetSpacePipeline;
+  if (tweetDoc.exists) return tweetDoc.data() as TweetSpacePipeline;
+  return null;
 };
 
 export const createTweetSpacePipeline = async (

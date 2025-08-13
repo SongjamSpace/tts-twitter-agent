@@ -46,3 +46,18 @@ export const getSpaceFinalSummaryById = async (spaceId: string) => {
     .get();
   return transcriptDoc.data() as SpaceTranscript;
 };
+
+export const updateSpaceDocWithCoinAnalysis = async (
+  spaceId: string,
+  noOfMentions: number,
+  breakdown: { songjam: number; sang: number },
+  speakerMentions: { userId: string; name: string; count: number }[]
+) => {
+  await db.doc(`spaces/${spaceId}`).update({
+    coinAnalysis: {
+      noOfMentions,
+      breakdown,
+      speakerMentions,
+    },
+  });
+};

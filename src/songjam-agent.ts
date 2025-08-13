@@ -7,6 +7,7 @@ import {
 } from "./services/db/tweetSpacesPipeline.js";
 import {
   createTweetFromFinalSummary,
+  analyzeSpeakerMentions,
   // createTweetsFromTranscript,
   // generateTwitterThread,
 } from "./services/grok.js";
@@ -14,6 +15,7 @@ import {
   getSpaceById,
   // getSpaceFinalSummaryById,
   getSpaceFullTranscriptById,
+  updateSpaceDocWithCoinAnalysis,
 } from "./services/db/spaces.js";
 import { sendTweetOnScraper, sendTweetThreadOnScraper } from "./scraper.js";
 import { TwitterApi } from "twitter-api-v2";
@@ -336,6 +338,118 @@ router.post("/handle-space-tweet", async (req, res) => {
   //   // TODO: Schedule next tweet
   //   res.send({ status: "success", tweetId, tweets });
   // }
+});
+
+router.post("/analyze-songjam-mentions", async (req, res) => {
+  const { spaceId } = req.body;
+
+  if (!spaceId) {
+    return res.status(400).json({ error: "spaceId is required" });
+  }
+
+  try {
+    // Get space data and transcript
+    const spaceDoc = await getSpaceById(spaceId);
+    if (!spaceDoc) {
+      return res.status(404).json({ error: "Space not found" });
+    }
+
+    const transcript = await getSpaceFullTranscriptById(spaceId);
+    if (!transcript) {
+      return res.status(404).json({ error: "Transcript not found" });
+    }
+
+    // Create speaker mapping for analysis
+    const allSpeakers = [
+      ...spaceDoc.admins.map((speaker: any) => ({
+        name: speaker.displayName,
+        twitterHandle: speaker.twitterScreenName,
+        userId: speaker.userId,
+      })),
+      ...spaceDoc.speakers.map((speaker: any) => ({
+        name: speaker.displayName,
+        twitterHandle: speaker.twitterScreenName,
+        userId: speaker.userId,
+      })),
+    ];
+
+    // First, do a quick check for any mentions of the keywords
+    const transcriptText = transcript.text.toLowerCase();
+    const songjamMentions = (
+      transcriptText.match(/songjam/g) ||
+      transcriptText.match(/song jam/g) ||
+      []
+    ).length;
+    const sangMentions = (transcriptText.match(/sang/g) || []).length;
+    const totalMentions = songjamMentions + sangMentions;
+
+    console.log(
+      `Quick check found ${totalMentions} mentions (songjam: ${songjamMentions}, sang: ${sangMentions})`
+    );
+
+    let speakerMentions: { userId: string; name: string; count: number }[] = [];
+    let breakdown = { songjam: songjamMentions, sang: sangMentions };
+
+    // Only use AI analysis if there are mentions
+    if (totalMentions > 0) {
+      console.log(
+        "Mentions found, analyzing with Grok AI for speaker attribution..."
+      );
+      const keywords = ["songjam", "sang"];
+      const aiAnalysis = await analyzeSpeakerMentions(
+        transcript.text,
+        allSpeakers,
+        keywords
+      );
+
+      console.log("AI Analysis result:", aiAnalysis);
+
+      speakerMentions = aiAnalysis.speakerMentions
+        .map((mention) => {
+          const speakerInfo = allSpeakers.find(
+            (speaker) => speaker.twitterHandle === mention.username
+          );
+          if (speakerInfo) {
+            return {
+              userId: speakerInfo?.userId,
+              username: mention.username,
+              name: speakerInfo?.name || mention.username,
+              count: mention.count,
+            };
+          }
+        })
+        .filter((mention) => mention !== undefined);
+    } else {
+      console.log("No mentions found, skipping AI analysis");
+    }
+
+    // Return the analysis results
+    const result = {
+      spaceId,
+      spaceTitle: spaceDoc.title,
+      totalMentions: totalMentions,
+      analysis: {
+        noOfMentions: totalMentions,
+        breakdown: breakdown,
+        speakerMentions: speakerMentions,
+        transcriptLength: transcript.text.length,
+        analysisMethod:
+          totalMentions > 0 ? "grok_ai_analysis" : "keyword_matching_only",
+      },
+    };
+
+    await updateSpaceDocWithCoinAnalysis(
+      spaceId,
+      totalMentions,
+      breakdown,
+      speakerMentions
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error analyzing songjam mentions:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // router.post("/generate-twitter-thread", async (req, res) => {

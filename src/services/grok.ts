@@ -222,3 +222,83 @@ Return a single tweet string — not a thread or an array — written in a clear
 
   return completion.choices[0].message.content.trim();
 };
+
+export const analyzeSpeakerMentions = async (
+  transcript: string,
+  speakerMapping: { name: string; twitterHandle: string }[],
+  keywords: string[]
+): Promise<{
+  speakerMentions: { username: string; count: number }[];
+}> => {
+  const systemPrompt = `You are an expert at analyzing transcripts and identifying which speakers mentioned specific keywords.
+
+Your task is to analyze a transcript and identify which specific speakers mentioned the keywords and how many times each speaker mentioned them.
+
+Available speakers and their Twitter handles:
+${JSON.stringify(speakerMapping, null, 2)}
+
+Keywords to search for: ${keywords.join(", ")}
+
+Instructions:
+- Analyze the transcript carefully to identify mentions of the keywords
+- For each mention, determine which speaker said it based on context, speaker identification, or direct attribution
+- Count mentions per speaker accurately
+- Be case-insensitive in your search
+- Consider variations and context (e.g., "sang" could be past tense of "sing" or refer to the keyword)
+
+Return ONLY a valid JSON object with this exact structure, no markdown formatting, no code blocks, just pure JSON:
+{
+  "speakerMentions": [
+    {
+      "username": "twitter_handle_without_@",
+      "count": number
+    }
+  ]
+}
+
+Important: Return ONLY the JSON object, no markdown code blocks, no explanations, just the raw JSON.
+Only include speakers who actually mentioned the keywords (count > 0).
+Be precise and accurate in your analysis.`;
+
+  const completion = await client.chat.completions.create({
+    model: "grok-2-latest",
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Analyze this transcript for mentions of the keywords: "${transcript}"`,
+      },
+    ],
+    temperature: 0.1,
+  });
+
+  try {
+    let content = completion.choices[0].message.content.trim();
+
+    // Remove markdown code blocks if present
+    if (content.startsWith("```json")) {
+      content = content.replace(/^```json\s*/, "");
+    }
+    if (content.startsWith("```")) {
+      content = content.replace(/^```\s*/, "");
+    }
+    if (content.endsWith("```")) {
+      content = content.replace(/\s*```$/, "");
+    }
+
+    const result = JSON.parse(content);
+    return {
+      speakerMentions: result.speakerMentions || [],
+    };
+  } catch (error) {
+    console.error("Error parsing Grok response:", error);
+    console.error("Raw response:", completion.choices[0].message.content);
+    // Fallback to basic analysis if AI parsing fails
+    return {
+      speakerMentions: [],
+    };
+  }
+};

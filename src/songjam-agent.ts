@@ -205,66 +205,91 @@ router.post("/send-tweet", async (req, res) => {
 });
 
 router.post("/handle-space-tweet", async (req, res) => {
-  const { spaceId } = req.body;
-  const tweetSpacePipeline = await getTweetSpacePipelineById(spaceId);
-  if (tweetSpacePipeline?.status === "SENT") {
-    return res.send("Tweet already sent");
-  }
-  const spaceDoc = await getSpaceById(spaceId);
-  if (!spaceDoc) {
-    return res.status(404).send("No space doc found");
-  }
-  const transcript = await getSpaceFullTranscriptById(spaceId);
-  if (!transcript) {
-    return res.status(404).send(`No transcript found for: ${spaceId}`);
-  }
-  console.log("Transcription retrieved");
-  const admins = spaceDoc.admins.map((s) => s.twitterScreenName);
-  const speakerMapping = [
-    ...spaceDoc.admins.map((speaker: any) => ({
-      name: speaker.displayName,
-      twitterHandle: speaker.twitterScreenName,
-    })),
-    ...spaceDoc.speakers.map((speaker: any) => ({
-      name: speaker.displayName,
-      twitterHandle: speaker.twitterScreenName,
-    })),
-  ];
-  const tweet = await createTweetFromFinalSummary(
-    transcript.text,
-    spaceDoc.title,
-    spaceDoc.isBroadcast,
-    admins,
-    speakerMapping,
-    `https://x.com/i/${
-      spaceDoc.isBroadcast ? "broadcasts" : "spaces"
-    }/${spaceId}`,
-    spaceDoc.startedAt
-  );
-  console.log("Tweet created");
-  const tweetId = await sendApiTweet(tweet);
-  if (tweetSpacePipeline) {
+  try {
+    const { spaceId } = req.body;
+    if (!spaceId) {
+      return res.status(400).send("spaceId is required");
+    }
+
+    const tweetSpacePipeline = await getTweetSpacePipelineById(spaceId);
+    if (tweetSpacePipeline?.status === "SENT") {
+      return res.send("Tweet already sent");
+    }
+
+    // If pipeline exists and has a tweet, send it
+    if (tweetSpacePipeline?.tweet) {
+      const tweetId = await sendApiTweet(tweetSpacePipeline.tweet);
+      await updateTweetSpacePipeline(spaceId, {
+        isSent: true,
+        tweetId,
+        status: "SENT",
+        updatedAt: Date.now(),
+      });
+      return res.send({ status: "success", tweetId });
+    }
+
+    // Otherwise, create a new tweet from the space transcript
+    const spaceDoc = await getSpaceById(spaceId);
+    if (!spaceDoc) {
+      return res.status(404).send("No space doc found");
+    }
+    const transcript = await getSpaceFullTranscriptById(spaceId);
+    if (!transcript) {
+      return res.status(404).send(`No transcript found for: ${spaceId}`);
+    }
+    console.log("Transcription retrieved");
+    const admins = spaceDoc.admins.map((s) => s.twitterScreenName);
+    const speakerMapping = [
+      ...spaceDoc.admins.map((speaker: any) => ({
+        name: speaker.displayName,
+        twitterHandle: speaker.twitterScreenName,
+      })),
+      ...spaceDoc.speakers.map((speaker: any) => ({
+        name: speaker.displayName,
+        twitterHandle: speaker.twitterScreenName,
+      })),
+    ];
+    const tweet = await createTweetFromFinalSummary(
+      transcript.text,
+      spaceDoc.title,
+      spaceDoc.isBroadcast,
+      admins,
+      speakerMapping,
+      `https://x.com/i/${
+        spaceDoc.isBroadcast ? "broadcasts" : "spaces"
+      }/${spaceId}`,
+      spaceDoc.startedAt
+    );
+    console.log("Tweet created");
+
+    // Create pipeline if it doesn't exist
+    if (!tweetSpacePipeline) {
+      await createTweetSpacePipeline(spaceId, {
+        isThread: false,
+        isSent: false,
+        tweet,
+        status: "NEW",
+        updatedAt: Date.now(),
+        createdAt: Date.now(),
+      });
+    }
+
+    // Send the tweet
+    const tweetId = await sendApiTweet(tweet);
     await updateTweetSpacePipeline(spaceId, {
-      isThread: false,
       isSent: true,
       tweetId,
-      tweet,
       status: "SENT",
       updatedAt: Date.now(),
     });
-  } else {
-    console.log("Creating tweet doc");
-    await createTweetSpacePipeline(spaceId, {
-      isThread: false,
-      isSent: true,
-      tweetId,
-      tweet,
-      status: "SENT",
-      updatedAt: Date.now(),
-      createdAt: Date.now(),
+    res.send({ status: "success", tweetId });
+  } catch (error) {
+    console.error("Error in handle-space-tweet:", error);
+    res.status(500).send({
+      status: "error",
+      error: error.message || "Internal server error",
     });
   }
-  res.send({ status: "success" });
 
   // const spaceDurationInMs = spaceDoc.endedAt - spaceDoc.startedAt;
   // const isSpaceMoreThan60Minutes = true;

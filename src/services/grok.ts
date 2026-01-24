@@ -169,7 +169,7 @@ export const createTweetFromFinalSummary = async (
 ): Promise<string> => {
   const spaceType = isBroadcast ? "Live" : "Space";
   const completion = await client.chat.completions.create({
-    model: "grok-2-latest",
+    model: "grok-3",
     messages: [
       {
         role: "system",
@@ -261,7 +261,7 @@ Only include speakers who actually mentioned the keywords (count > 0).
 Be precise and accurate in your analysis.`;
 
   const completion = await client.chat.completions.create({
-    model: "grok-2-latest",
+    model: "grok-3",
     messages: [
       {
         role: "system",
